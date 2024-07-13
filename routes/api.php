@@ -43,7 +43,7 @@ Route::group(['namespace' => 'API'], function () {
     Route::post('/change-password', [UserController::class, 'changePassword']);
 
     Route::get('/categories', [QuoteController::class, 'categories']);
-    Route::get('/categories-with-quotes', [QuoteController::class, 'categoriesWithQuotes']);
+    Route::get('/categories-with-quotes/{id?}', [QuoteController::class, 'categoriesWithQuotes']);
     Route::get('/quotes/{user_id?}', [QuoteController::class, 'quotes']);
 
     // Route::get('login/google', [UserController::class, 'redirectToGoogleProvider']);

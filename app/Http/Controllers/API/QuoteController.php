@@ -55,10 +55,14 @@ class QuoteController extends Controller
         }
     }
 
-    public function categoriesWithQuotes()
+    public function categoriesWithQuotes($id = null)
     {
         try {
-            $categories = QuoteCategory::with('quote')->get();
+            if (isset($id)) {
+                $categories = QuoteCategory::with('quote')->whereId($id)->get();
+            } else {
+                $categories = QuoteCategory::with('quote')->get();
+            }
             return response()->json([
                 'status' => 'success',
                 'data' => $categories,

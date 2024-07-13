@@ -17,4 +17,8 @@ class QuoteCategory extends Model
     public function quote(){
         return $this->hasMany(Quote::class, 'category_id');
     }
+
+    public function theme(){
+        return $this->hasMany(Theme::class, 'category_id');
+    }
 }

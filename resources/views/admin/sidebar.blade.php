@@ -50,11 +50,16 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('quotes') }}">
-                        <i class="bi bi-bar-chart"></i> quotes
+                    <a class="nav-link" href="{{ route('themes') }}">
+                        <i class="bi bi-bar-chart"></i> Themes
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" href="{{ route('quotes') }}">
+                        <i class="bi bi-bar-chart"></i> Quotes
+                    </a>
+                </li>
+                {{-- <li class="nav-item">
                     <a class="nav-link" href="#">
                         <i class="bi bi-chat"></i> Messages
                         <span
@@ -70,7 +75,7 @@
                     <a class="nav-link" href="#">
                         <i class="bi bi-people"></i> Users
                     </a>
-                </li>
+                </li> --}}
             </ul>
             <!-- Divider -->
             <hr class="navbar-divider my-5 opacity-20">

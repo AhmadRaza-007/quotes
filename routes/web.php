@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\QuoteCategoryController;
+use App\Http\Controllers\ThemeController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -37,6 +38,12 @@ Route::group(['middleware' => 'auth'], function () {
         Route::get('category/edit/{id}', [QuoteCategoryController::class, 'edit'])->name('category.edit');
         Route::post('category/update', [QuoteCategoryController::class, 'update'])->name('category.update');
         Route::get('category/delete/{id}', [QuoteCategoryController::class, 'destroy'])->name('category.delete');
+
+        Route::get('themes', [ThemeController::class, 'index'])->name('themes');
+        Route::post('/store-themes', [ThemeController::class, 'store'])->name('themes.store');
+        Route::get('/theme/edit/{id}', [ThemeController::class, 'edit'])->name('themes.edit');
+        Route::post('/theme/update', [ThemeController::class, 'update'])->name('themes.update');
+        Route::get('/theme/delete/{id}', [ThemeController::class, 'destroy'])->name('themes.delete');
 
         Route::get('/quotes', [QuoteController::class, 'index'])->name('quotes');
         Route::post('/storeQuotes', [QuoteController::class, 'store'])->name('quotes.store');

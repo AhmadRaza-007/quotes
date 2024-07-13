@@ -7,79 +7,77 @@ use Illuminate\Http\Request;
 
 class ThemeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
-        //
+        $themes = Theme::with('category')->paginate(10);
+        return view('admin.theme', compact('themes'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
-        //
+        $request->validate([
+            'title' => 'required|max:255',
+            'theme' => 'required',
+            'category_id' => 'required',
+        ]);
+
+        try {
+            $themeFile = $request->file('theme');
+            $themerName = time() . '.' . $themeFile->getClientOriginalExtension();
+            $themeFile->move(public_path('uploads/themes'), $themerName);
+
+            $theme = new Theme();
+            $theme->name = $request->title;
+            $theme->category_id = $request->category_id;
+            $theme->theme = 'uploads/themes/' . $themerName;
+            $theme->save();
+
+            return redirect()->route('themes')->with('success', 'Theme saved successfully');
+        } catch (\Exception $e) {
+            \Log::error($e->getMessage());
+            return redirect()->route('themes')->with('error', 'Failed to save theme. ' . $e->getMessage());
+        }
     }
 
-    /**
-     * Display the specified resource.
-     *
-     * @param  \App\Models\Theme  $theme
-     * @return \Illuminate\Http\Response
-     */
-    public function show(Theme $theme)
+    public function edit($id)
     {
-        //
+        $theme = Theme::with('category')->find($id);
+        return response()->json($theme);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     *
-     * @param  \App\Models\Theme  $theme
-     * @return \Illuminate\Http\Response
-     */
-    public function edit(Theme $theme)
+    public function update(Request $request)
     {
-        //
+        $request->validate([
+            'title' => 'required|max:255',
+            'theme' => 'nullable',
+            'category_id' => 'required',
+        ]);
+
+        $themeFile = $request->file('theme');
+        if ($themeFile) {
+            $themerName = time() . '.' . $themeFile->getClientOriginalExtension();
+            $themeFile->move(public_path('uploads/themes'), $themerName);
+
+            $theme = Theme::find($request->theme_id);
+            $theme->name = $request->title;
+            $theme->category_id = $request->category_id;
+            $theme->theme = 'uploads/themes/' . $themerName;
+            $theme->save();
+        } else {
+            $theme = Theme::find($request->theme_id);
+            $theme->name = $request->title;
+            $theme->category_id = $request->category_id;
+            $theme->save();
+        }
+
+        return redirect()->back()->with('success', 'Themes has been successfully updated.');
     }
 
-    /**
-     * Update the specified resource in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  \App\Models\Theme  $theme
-     * @return \Illuminate\Http\Response
-     */
-    public function update(Request $request, Theme $theme)
+    public function destroy($id)
     {
-        //
-    }
+        $theme = Theme::find($id);
+        $theme->delete();
 
-    /**
-     * Remove the specified resource from storage.
-     *
-     * @param  \App\Models\Theme  $theme
-     * @return \Illuminate\Http\Response
-     */
-    public function destroy(Theme $theme)
-    {
-        //
+        return redirect()->route('themes')->with('success', 'Theme deleted successfully');
     }
 }
