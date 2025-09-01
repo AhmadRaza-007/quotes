@@ -50,13 +50,13 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('themes') }}">
-                        <i class="bi bi-bar-chart"></i> Themes
+                    <a class="nav-link" href="{{ route('wallpapers') }}">
+                        <i class="bi bi-image"></i> Wallpapers
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('quotes') }}">
-                        <i class="bi bi-bar-chart"></i> Quotes
+                    <a class="nav-link" href="{{ route('admin.users.index') }}">
+                        <i class="bi bi-image"></i> Users
                     </a>
                 </li>
                 {{-- <li class="nav-item">

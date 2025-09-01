@@ -35,7 +35,7 @@
             <div class="action">
                 <button type="submit" class="bg-primary text-light">Login</button>
             </div>
-            <hr>
+            {{-- <hr>
             <div class="action mt-3">
                 <a href="{{ route('google.login') }}" class="bg-danger text-light"
                     style="width: 100%;padding: 1rem;text-align: center;text-decoration:none;color:white">Login With
@@ -53,7 +53,7 @@
                 <a href="{{ route('facebook.login') }}" class="bg-dark text-light"
                     style="width: 100%;padding: 1rem;text-align: center;text-decoration:none;color:white">Login With
                     Apple</a>
-            </div>
+            </div> --}}
         </form>
     </div>
     <!-- partial -->

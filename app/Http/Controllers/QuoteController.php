@@ -14,8 +14,8 @@ class QuoteController extends Controller
      */
     public function index()
     {
-        $quotes = Quote::with('category')->paginate(10);
-        return view('admin.quotes', compact('quotes'));
+        $wallpapers = Quote::with('category')->paginate(10);
+        return view('admin.quotes', compact('wallpapers'));
     }
 
     /**

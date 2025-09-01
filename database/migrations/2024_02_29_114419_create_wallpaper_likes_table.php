@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateQuoteCategoriesTable extends Migration
+class CreatewallpaperLikesTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,10 @@ class CreateQuoteCategoriesTable extends Migration
      */
     public function up()
     {
-        Schema::create('quote_categories', function (Blueprint $table) {
+        Schema::create('wallpaper_likes', function (Blueprint $table) {
             $table->id();
-            $table->string('category_name');
+            $table->string('user_id');
+            $table->string('wallpaper_id');
             $table->timestamps();
         });
     }
@@ -27,6 +28,6 @@ class CreateQuoteCategoriesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('quote_categories');
+        Schema::dropIfExists('wallpaper_likes');
     }
 }

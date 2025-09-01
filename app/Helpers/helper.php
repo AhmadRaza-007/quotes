@@ -1,8 +1,9 @@
 <?php
 
 use App\Models\QuoteCategory;
-use App\Models\Quote;
 use App\Models\User;
+use App\Models\Wallpaper;
+use App\Models\WallpaperCategory;
 
 if (!function_exists('getUsers')) {
     function getUsers()
@@ -14,7 +15,7 @@ if (!function_exists('getUsers')) {
 if (!function_exists('getCategories')) {
     function getCategories()
     {
-        return QuoteCategory::get();
+        return WallpaperCategory::get();
     }
 }
 
@@ -25,16 +26,24 @@ if (!function_exists('getCategoryById')) {
     }
 }
 
-if (!function_exists('getQuates')) {
-    function getQuotes()
+if (!function_exists('getWallpapers')) {
+    function getWallpapers()
     {
-        return Quote::get();
+        return Wallpaper::get();
     }
 }
 
-if (!function_exists('getQuateById')) {
+if (!function_exists('getQuotes')) {
+    // Backwards compatibility: alias for wallpapers
+    function getQuotes()
+    {
+        return Wallpaper::get();
+    }
+}
+
+if (!function_exists('getQuoteById')) {
     function getQuoteById($id)
     {
-        return Quote::whereId($id)->get();
+        return Wallpaper::whereId($id)->get();
     }
 }

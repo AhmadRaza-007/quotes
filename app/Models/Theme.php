@@ -12,7 +12,11 @@ class Theme extends Model
     protected $fillable = [
         'category_id',
         'name',
-        'theme'
+        'theme',
+        'media_type',
+        'thumbnail',
+        'mime_type',
+        'file_size',
     ];
 
     public function category()

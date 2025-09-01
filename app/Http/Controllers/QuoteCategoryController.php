@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\WallpaperCategory;
 use App\Models\QuoteCategory;
 use Illuminate\Http\Request;
 
@@ -14,7 +15,7 @@ class QuoteCategoryController extends Controller
      */
     public function index()
     {
-        $categories = QuoteCategory::get();
+        $categories = WallpaperCategory::get();
         return view('admin.category', compact('categories'));
     }
 
@@ -40,7 +41,7 @@ class QuoteCategoryController extends Controller
             'category_name' =>'required',
         ]);
 
-        QuoteCategory::create($data);
+        WallpaperCategory::create($data);
 
         return back()->with('success', 'Category Added Successfully');
     }
@@ -64,7 +65,7 @@ class QuoteCategoryController extends Controller
      */
     public function edit($id)
     {
-        return QuoteCategory::find($id);
+        return WallpaperCategory::find($id);
     }
 
     /**
@@ -95,14 +96,14 @@ class QuoteCategoryController extends Controller
      */
     public function destroy($id)
     {
-        $a = QuoteCategory::with('quote')->whereId($id)->first();
-        $count = $a->quote->count();
+        $a = WallpaperCategory::with('wallpapers')->whereId($id)->first();
+        $count = $a->wallpapers->count();
 
         if ($count <= 0) {
-            QuoteCategory::find($id)->delete();
+            WallpaperCategory::find($id)->delete();
             return back()->with('success', 'Category Deleted Successfully');
         }else {
-            return back()->with('error', 'You can not delete this category because it has quotes');
+            return back()->with('error', 'You can not delete this category because it has wallpapers');
         }
     }
 }

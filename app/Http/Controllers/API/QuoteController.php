@@ -3,38 +3,31 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Quote;
-use App\Models\QuoteCategory;
+use App\Models\Wallpaper;
+use App\Models\WallpaperCategory;
 use Illuminate\Http\Request;
 
 class QuoteController extends Controller
 {
-    public function quotes(Request $request, $user_id = 0)
+    public function wallpapers(Request $request, $user_id = 0)
     {
         try {
-            $userId = $user_id;
+            $wallpapers = Wallpaper::with('category')->paginate($request->count ?? 10);
 
-            // Retrieve and paginate quotes
-            $quotes = Quote::with('category')
-                ->withCount('likes')
-                ->withCount('comments')
-                ->paginate($request->count ?? 10);
-
-            // Use transform to add is_liked_by_user attribute
-            $quotes->getCollection()->transform(function ($quote) use ($userId) {
-                $quote->is_liked_by_user = $quote->userLikes($userId)->exists();
-                $quote->is_favourite_by_user = $quote->userFavourites($userId)->exists();
-                return $quote;
+            $wallpapers->getCollection()->transform(function ($wp) {
+                $wp->file_url = $wp->file_path ? url($wp->file_path) : null;
+                $wp->thumbnail_url = $wp->thumbnail ? url($wp->thumbnail) : null;
+                return $wp;
             });
 
             return response()->json([
                 'status' => 'success',
-                'data', $quotes
+                'data' => $wallpapers
             ], 200);
         } catch (\Exception $exception) {
             return response()->json([
                 'status' => 'error',
-                'error' => $exception->getMessage() . " on line number: " . $exception->getLine(),
+                'error' => $exception->getMessage(),
             ], 500);
         }
     }
@@ -42,7 +35,7 @@ class QuoteController extends Controller
     public function categories(Request $request)
     {
         try {
-            $categories = QuoteCategory::get();
+            $categories = WallpaperCategory::get();
             return response()->json([
                 'status' => 'success',
                 'data' => $categories,
@@ -50,18 +43,18 @@ class QuoteController extends Controller
         } catch (\Exception $exception) {
             return response()->json([
                 'status' => 'error',
-                'error' => $exception->getMessage() . " on line number: " . $exception->getLine(),
+                'error' => $exception->getMessage(),
             ], 500);
         }
     }
 
-    public function categoriesWithQuotes($id = null)
+    public function categoriesWithWallpapers($id = null)
     {
         try {
             if (isset($id)) {
-                $categories = QuoteCategory::with('quote')->whereId($id)->get();
+                $categories = WallpaperCategory::with('wallpapers')->whereId($id)->get();
             } else {
-                $categories = QuoteCategory::with('quote')->get();
+                $categories = WallpaperCategory::with('wallpapers')->get();
             }
             return response()->json([
                 'status' => 'success',
@@ -70,7 +63,7 @@ class QuoteController extends Controller
         } catch (\Exception $exception) {
             return response()->json([
                 'status' => 'error',
-                'error' => $exception->getMessage() . " on line number: " . $exception->getLine(),
+                'error' => $exception->getMessage(),
             ], 500);
         }
     }

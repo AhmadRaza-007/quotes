@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 
-use App\Models\QuoteComment;
+use App\Models\WallpaperComment as QuoteComment;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
 class QuoteCommentController extends Controller
@@ -13,11 +14,11 @@ class QuoteCommentController extends Controller
     {
         try {
             $inputs = request()->validate([
-                'quote_id' => 'required',
+                'wallpaper_id' => 'required',
                 'comment' => 'required',
             ]);
 
-            $inputs['user_id'] = auth()->user()->id;
+            $inputs['user_id'] = auth()->id();
 
             $comment = QuoteComment::create($inputs);
 
@@ -33,12 +34,12 @@ class QuoteCommentController extends Controller
         }
     }
 
-    public function getComment($quoteId)
+    public function getComment($wallpaperId)
     {
         try {
             $comments = QuoteComment::with(['user' => function ($query) {
-                $query->select('id', 'name', 'avatar');
-            }])->where('quote_id', $quoteId)->get();
+                $query->select('id', 'name');
+            }])->where('wallpaper_id', $wallpaperId)->latest()->get();
 
             return response()->json([
                 'status' => 'success',

@@ -10,7 +10,7 @@
         "guzzlehttp/guzzle": "^7.0.1",
         "laravel/framework": "^8.75",
         "laravel/sanctum": "^2.11",
-        "laravel/socialite": "^5.15",
+        "laravel/socialite": "^5.16",
         "laravel/tinker": "^2.5",
         "php-flasher/flasher-noty-laravel": "^1.15"
     },

@@ -2,10 +2,11 @@
 
 use App\Http\Controllers\API\FavouriteController;
 use App\Http\Controllers\API\LikeController;
-use App\Http\Controllers\Api\QuoteCommentController;
-use App\Http\Controllers\API\QuoteController;
+use App\Http\Controllers\API\CommentController;
+use App\Http\Controllers\API\CategoryController;
+use App\Http\Controllers\API\WallpaperController;
 use App\Http\Controllers\API\UserController;
-use Illuminate\Http\Request;
+use App\Http\Controllers\API\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,36 +20,40 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::group(['namespace' => 'API'], function () {
+Route::group(['namespace' => 'API', 'middleware' => 'api'], function () {
 
-    Route::group(['middleware' => 'auth:sanctum'], function () {
+    // Public routes (no authentication required)
+    Route::get('/wallpapers', [WallpaperController::class, 'index']);
+    Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
+    Route::get('/categories', [CategoryController::class, 'categories']);
+    Route::get('/categories/{id}/wallpapers', [CategoryController::class, 'categoriesWithWallpapers']);
+    // Route::get('/thumbnail/{id}', [ThumbnailController::class, 'show']);
 
-        Route::get('categories', [QuoteController::class, 'categories']);
-        Route::post('/logout', [UserController::class, 'logout']);
-        Route::post('/delete-user', [UserController::class, 'deleteUser']);
-
-        Route::post('/like', [LikeController::class, 'like']);
-        Route::get('/get-like/{quoteId}', [LikeController::class, 'getLikedByUser']);
-        Route::post('/favourite', [FavouriteController::class, 'favourite']);
-        Route::get('/get-favourites', [FavouriteController::class, 'getFavourite']);
-        Route::get('/get-favourite/{quoteId}', [FavouriteController::class, 'getFavouriteByUser']);
-
-        Route::post('/comment', [QuoteCommentController::class, 'comment']);
-    });
-    Route::get('/get-comment/{quoteId}', [QuoteCommentController::class, 'getComment']);
-
+    // Authentication routes
     Route::post('/login', [UserController::class, 'login']);
     Route::post('/signup', [UserController::class, 'register']);
     Route::post('/forget-password', [UserController::class, 'forgotPassword']);
+    Route::post('/reset-password', [UserController::class, 'resetPassword']);
     Route::post('/change-password', [UserController::class, 'changePassword']);
 
-    Route::get('/categories', [QuoteController::class, 'categories']);
-    Route::get('/categories-with-quotes/{id?}', [QuoteController::class, 'categoriesWithQuotes']);
-    Route::get('/quotes/{user_id?}', [QuoteController::class, 'quotes']);
+    // Social authentication
+    Route::post('/auth/google', [SocialAuthController::class, 'handleGoogleAuth']);
+    Route::post('/auth/facebook', [SocialAuthController::class, 'handleFacebookAuth']);
 
-    // Route::get('login/google', [UserController::class, 'redirectToGoogleProvider']);
-    Route::get('login/google', [UserController::class, 'handleProviderCallback']);
-    // Route::get('google/callback', [UserController::class, 'handleProviderCallback']);
+    // Protected routes (authentication required)
+    Route::group(['middleware' => 'auth:sanctum'], function () {
+        // User routes
+        Route::post('/logout', [UserController::class, 'logout']);
+        Route::post('/delete-user', [UserController::class, 'deleteUser']);
+        Route::get('/profile', [UserController::class, 'profile']);
 
-    Route::get('login/facebook', [UserController::class, 'handleFacebookCallback']);
+        // Interaction routes
+        Route::post('/like', [LikeController::class, 'like']);
+        Route::get('/get-like/{wallpaperId}', [LikeController::class, 'getLikedByUser']);
+        Route::post('/favourite', [FavouriteController::class, 'favourite']);
+        Route::get('/get-favourites', [FavouriteController::class, 'getFavourite']);
+        Route::get('/get-favourite/{wallpaperId}', [FavouriteController::class, 'getFavouriteByUser']);
+        Route::post('/comment', [CommentController::class, 'comment']);
+        Route::get('/get-comment/{wallpaperId}', [CommentController::class, 'getComment']);
+    });
 });

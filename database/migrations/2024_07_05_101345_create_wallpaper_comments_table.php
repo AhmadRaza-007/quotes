@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateQuoteCommentsTable extends Migration
+class CreateWallpaperCommentsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,9 +13,9 @@ class CreateQuoteCommentsTable extends Migration
      */
     public function up()
     {
-        Schema::create('quote_comments', function (Blueprint $table) {
+        Schema::create('wallpaper_comments', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('quote_id');
+            $table->unsignedBigInteger('wallpaper_id');
             $table->unsignedBigInteger('user_id');
             $table->text('comment');
             $table->timestamps();
@@ -29,6 +29,6 @@ class CreateQuoteCommentsTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('quote_comments');
+        Schema::dropIfExists('wallpaper_comments');
     }
 }

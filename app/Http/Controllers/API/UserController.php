@@ -3,15 +3,16 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Quote;
-use App\Models\QuoteFavourite;
-use App\Models\QuoteLike;
 use App\Models\User;
+use App\Models\Like;
+use App\Models\WallpaperFavourite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use Laravel\Socialite\Facades\Socialite;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 
 class UserController extends Controller
 {
@@ -161,8 +162,8 @@ class UserController extends Controller
 
                 if ($user_detail && Hash::check($request->password, $user->password)) {
 
-                    quoteFavourite::whereUserId($user->id)->delete();
-                    quoteLike::whereUserId($user->id)->delete();
+                    WallpaperFavourite::whereUserId($user->id)->delete();
+                    Like::whereUserId($user->id)->delete();
                     User::whereId($user->id)->delete();
 
                     return response()->json([
@@ -280,4 +281,57 @@ class UserController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
     }
+
+    public function resetPassword(Request $request)
+    {
+        try {
+            $request->validate([
+                'email' => 'required|email',
+                'reset_code' => 'required|digits:6',
+                'password' => 'required|confirmed|min:6',
+            ]);
+
+            $user = User::where('email', $request->email)
+                ->where('reset_code', $request->reset_code)
+                ->first();
+
+            if (!$user) {
+                return response()->json([
+                    'message' => 'Invalid reset code or email',
+                ], 400);
+            }
+
+            $user->update([
+                'password' => Hash::make($request->password),
+                'reset_code' => null,
+            ]);
+
+            return response()->json([
+                'message' => 'Password reset successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'error',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function profile(Request $request)
+    {
+        try {
+            $user = $request->user();
+
+            return response()->json([
+                'status' => 'success',
+                'user' => $user
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
+

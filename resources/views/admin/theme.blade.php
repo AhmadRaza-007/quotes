@@ -77,7 +77,7 @@
                                             <label for="category_id" class="form-label">Theme Category</label>
                                             <select class="form-select" name="category_id" id="category_id"
                                                 aria-label="Default select example" required>
-                                                <option value="1" selected disabled>Select Parent Category</option>
+                                                <option value="" selected disabled>Select Parent Category</option>
                                                 @foreach (getCategories() as $item)
                                                     <option value="{{ $item->id }}">{{ $item->category_name }}</option>
                                                 @endforeach
@@ -86,16 +86,25 @@
                                         <div class="mb-3">
                                             <label for="category" class="form-label">Theme Title</label>
                                             <input type="text" name="title" class="form-control" id="theme_number"
-                                                placeholder="Enter Number" required>
+                                                placeholder="Enter Title" required>
                                         </div>
-                                        {{-- <div class="mb-3">
-                                            <label for="category" class="form-label">theme</label>
-                                            <textarea name="theme" id="tiny"></textarea>
-                                        </div> --}}
+                                        <div class="mb-3">
+                                            <label for="media_type" class="form-label">Media Type</label>
+                                            <select class="form-select" name="media_type" id="media_type">
+                                                <option value="">Auto detect</option>
+                                                <option value="image">Image</option>
+                                                <option value="video">Video</option>
+                                                <option value="live">Live (GIF)</option>
+                                            </select>
+                                        </div>
                                         <div class="mb-3 flex-column">
-                                            <label for="inputEmail4" class="form-label">Theme</label>
-                                            <input type="file" id="theme" name="theme" class="form-control"
-                                                style="width: 100%">
+                                            <label class="form-label">Theme File</label>
+                                            <input type="file" id="theme" name="theme" class="form-control" accept="image/*,video/*" required>
+                                            <small class="text-muted">Images (JPG, PNG, GIF) or videos (MP4, WebM, MOV). Max 50MB.</small>
+                                        </div>
+                                        <div class="mb-3 flex-column">
+                                            <label class="form-label">Thumbnail (optional, used for videos)</label>
+                                            <input type="file" id="thumbnail" name="thumbnail" class="form-control" accept="image/*">
                                         </div>
                                     </div>
                                     <div class="modal-footer">
@@ -128,37 +137,37 @@
                                 <form method="POST" action="{{ route('themes.update') }}" enctype="multipart/form-data">
                                     @csrf
                                     <div class="modal-body">
-                                        <input type="hidden" name="theme_id" class="form-control" id="theme_hidden"
-                                            placeholder="Enter Number" required>
+                                        <input type="hidden" name="theme_id" class="form-control" id="theme_hidden" required>
                                         <div class="mb-3">
                                             <label for="category_id" class="form-label">Theme Category</label>
-                                            <select class="form-select" name="category_id"
-                                                aria-label="Default select example" required>
+                                            <select class="form-select" name="category_id" id="category_id_edit" required>
                                                 <option id="category_edit" value=""></option>
-                                            </select>
-                                        </div>
-                                        {{-- <div class="mb-3">
-                                            <label for="category_id" class="form-label">Language</label>
-                                            <select class="form-select" name="language_id" id="surah_id"
-                                                aria-label="Default select example" required>
-                                                <option disabled selected>Select Language</option>
-                                                @foreach ($languages as $language)
-                                                    <option value="{{ $language->id }}">{{ $language->language }}
-                                                    </option>
+                                                @foreach (getCategories() as $item)
+                                                    <option value="{{ $item->id }}">{{ $item->category_name }}</option>
                                                 @endforeach
                                             </select>
-                                        </div> --}}
-                                        {{-- <input type="hidden" name="theme_id" value="" id="theme_id_hidden">
-                                        <input type="hidden" name="category_id" value="" id="category_id_hidden"> --}}
+                                        </div>
                                         <div class="mb-3">
                                             <label for="category" class="form-label">Theme Title</label>
-                                            <input type="text" name="title" class="form-control" id="title"
-                                                placeholder="Enter Number" required>
+                                            <input type="text" name="title" class="form-control" id="title" placeholder="Enter Title" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label for="media_type_edit" class="form-label">Media Type</label>
+                                            <select class="form-select" name="media_type" id="media_type_edit">
+                                                <option value="">Auto detect</option>
+                                                <option value="image">Image</option>
+                                                <option value="video">Video</option>
+                                                <option value="live">Live (GIF)</option>
+                                            </select>
                                         </div>
                                         <div class="mb-3 flex-column">
-                                            <label for="inputEmail4" class="form-label">Theme</label>
-                                            <input type="file" id="theme" name="theme" class="form-control"
-                                                style="width: 100%">
+                                            <label class="form-label">Replace Theme File (optional)</label>
+                                            <input type="file" id="theme_edit" name="theme" class="form-control" accept="image/*,video/*">
+                                        </div>
+                                        <div class="mb-3 flex-column">
+                                            <label class="form-label">Thumbnail (optional, used for videos)</label>
+                                            <input class="form-control" name="thumbnail" type="file" id="thumbnail_edit" accept="image/*">
+                                            <img src="" id="thumbnail_preview" height="100" width="100" class="mt-2" style="display:none;">
                                         </div>
                                     </div>
                                     <div class="modal-footer">
@@ -241,7 +250,8 @@
                             <tr>
                                 <th>No.</th>
                                 <th>Theme Title</th>
-                                <th>theme</th>
+                                <th>Type</th>
+                                <th>Preview</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -251,10 +261,16 @@
                                 <tr>
                                     <td>{{ $key + 1 }}</td>
                                     <td>{{ $theme->name }}</td>
-                                    <td>{{ $theme->name }}</td>
+                                    <td>{{ strtoupper($theme->media_type ?? 'image') }}</td>
                                     <td>
-                                        <img src="{{ asset($theme->theme) }}" alt="" width="100"
-                                            style="height: 100px">
+                                        @if(($theme->media_type ?? 'image') === 'video')
+                                            <video width="140" height="100" controls preload="metadata" @if($theme->thumbnail) poster="{{ asset($theme->thumbnail) }}" @endif>
+                                                <source src="{{ asset($theme->theme) }}" type="{{ $theme->mime_type ?? 'video/mp4' }}">
+                                                Your browser does not support the video tag.
+                                            </video>
+                                        @else
+                                            <img src="{{ asset($theme->theme) }}" alt="" width="140" style="height: 100px; object-fit: cover;">
+                                        @endif
                                     </td>
                                     <td style="min-width: 11rem;">
                                         <a class="btn btn-sm" onclick="editCategory({{ $theme->id }})">
@@ -263,7 +279,7 @@
                                         <a onclick="" class="btn btn-sm">
                                             <i class="fas fa-bell"></i>
                                         </a>
-                                        <a href="{{ url('admin/theme/delete') . '/' . $theme->id }}"
+                                        <a href="{{ url('/theme/delete/' . $theme->id) }}"
                                             class="btn delete btn-sm">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
@@ -310,21 +326,29 @@
     </script> --}}
     {{-- <script src="{{ asset('js/custom.js') }}"></script> --}}
     <script>
-        $("#wallpaper_edit").on('change', function(e) {
-            $("#wallpaperImage_edit").attr("src", URL.createObjectURL(e.target.files[0]));
+        $("#thumbnail_edit").on('change', function(e) {
+            $("#thumbnail_preview").attr("src", URL.createObjectURL(e.target.files[0])).show();
         })
 
         function editCategory(id) {
-            console.log(id);
             $.ajax({
-                url: "{{ url('admin/theme/edit/') }}" + "/" + id,
+                url: "{{ url('/theme/edit') }}" + "/" + id,
                 success: function(data) {
-                    console.log(data);
-                    $("#title").val(data.title);
+                    $("#title").val(data.name);
                     $("#theme_hidden").val(data.id);
-                    // $(tinymce.get('tiny2').getBody()).html(data.theme);
                     $("#category_edit").val(data.category_id);
-                    $("#category_edit").text(data.category.category_name);
+                    $("#category_edit").text(data.category?.category_name ?? '');
+                    $("#category_id_edit").val(data.category_id);
+                    if (data.media_type) {
+                        $("#media_type_edit").val(data.media_type);
+                    } else {
+                        $("#media_type_edit").val('');
+                    }
+                    if (data.thumbnail) {
+                        $("#thumbnail_preview").attr('src', data.thumbnail.startsWith('http') ? data.thumbnail : ('{{ url('/') }}/' + data.thumbnail)).show();
+                    } else {
+                        $("#thumbnail_preview").hide();
+                    }
                     $("#updateModalLabel").modal("show");
                 }
             })

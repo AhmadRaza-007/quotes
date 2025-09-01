@@ -9,14 +9,16 @@ class QuoteComment extends Model
 {
     use HasFactory;
 
+    protected $table = 'wallpaper_comments';
+
     protected $fillable = [
-        'quote_id',
+        'wallpaper_id',
         'user_id',
         'comment'
     ];
 
     public function user()
     {
-        return $this->belongsto(User::class);
+        return $this->belongsTo(User::class);
     }
 }

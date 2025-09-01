@@ -3,9 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Favourite;
-use App\Models\Quote;
-use App\Models\QuoteFavourite;
+use App\Models\Wallpaper;
+use App\Models\WallpaperFavourite;
 use Illuminate\Http\Request;
 
 class FavouriteController extends Controller
@@ -13,35 +12,41 @@ class FavouriteController extends Controller
     public function favourite(Request $request)
     {
         try {
+            // Backward compatibility: accept quote_id as alias for wallpaper_id
+            if ($request->has('quote_id') && !$request->has('wallpaper_id')) {
+                $request->merge(['wallpaper_id' => $request->quote_id]);
+            }
+
             $request->validate([
-                'quote_id' => 'required',
+                'wallpaper_id' => 'required',
             ]);
 
-            $quote = Quote::find($request->quote_id);
+            $wallpaper = Wallpaper::find($request->wallpaper_id);
 
-            if (!$quote) {
+            if (!$wallpaper) {
                 return response()->json([
-                  'message' => 'quote not found',
+                  'message' => 'wallpaper not found',
                 ], 400);
             }
 
-            $favourite = quoteFavourite::where('quote_id', $request->quote_id)->first();
-            if ($favourite) {
-                $favourite->delete();
+            $existing = WallpaperFavourite::where('wallpaper_id', $request->wallpaper_id)
+                ->where('user_id', auth()->user()->id)
+                ->first();
+            if ($existing) {
+                $existing->delete();
                 return response()->json([
-                    'message' => 'quote favourite removed',
-                    'favourite' => $favourite,
-
+                    'message' => 'wallpaper favourite removed',
+                    'favourite' => $existing,
                 ], 200);
             }
 
-            $like = new quoteFavourite();
-            $like->quote_id = $request->quote_id;
-            $like->user_id = auth()->user()->id;
-            $like->save();
+            $fav = new WallpaperFavourite();
+            $fav->wallpaper_id = $request->wallpaper_id;
+            $fav->user_id = auth()->user()->id;
+            $fav->save();
 
             return response()->json([
-                'message' => 'quote favourite successfully',
+                'message' => 'wallpaper favourited successfully',
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -52,7 +57,7 @@ class FavouriteController extends Controller
 
     public function getFavourite(){
         try {
-            $favourites = quoteFavourite::where('user_id', auth()->user()->id)->get();
+            $favourites = WallpaperFavourite::where('user_id', auth()->user()->id)->get();
             return response()->json([
                 'favourites' => $favourites,
             ], 200);
@@ -63,11 +68,13 @@ class FavouriteController extends Controller
         }
     }
 
-    public function getFavouriteByUser($quoteId){
+    public function getFavouriteByUser($wallpaperId){
         try {
-            $favourites = quoteFavourite::where('quote_id', $quoteId)->where('user_id', auth()->user()->id)->get();
+            $favourites = WallpaperFavourite::where('wallpaper_id', $wallpaperId)
+                ->where('user_id', auth()->user()->id)
+                ->get();
             return response()->json([
-                'favouriteQuotes' => $favourites,
+                'favouriteQuotes' => $favourites, // keeping key for backward compatibility
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

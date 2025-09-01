@@ -4,17 +4,17 @@
     <main>
         <div class="container-fluid px-4">
             <div class="d-flex justify-content-between align-center">
-                <h1 class="mt-4">quotes</h1>
+                <h1 class="mt-4">wallpapers</h1>
                 <p class="mt-4">Count: </p>
             </div>
             <ol class="breadcrumb mb-4">
                 <li class="breadcrumb-item"><a href="">Dashboard</a></li>
-                <li class="breadcrumb-item active">quotes</li>
+                <li class="breadcrumb-item active">wallpapers</li>
             </ol>
             <div class="card mb-4">
                 <div class="card-header">
                     <i class="fas fa-table me-1"></i>
-                    quotes
+                    wallpapers
                 </div>
                 <div class="card-body">
                     <div class="d-flex justify-content-between mb-2">
@@ -39,7 +39,7 @@
 
                         <button type="button" data-bs-toggle="modal" data-bs-target="#exampleModal"
                             class="btn d-inline-flex btn-sm btn-primary mx-1">Add
-                            quote</button>
+                            wallpaper</button>
                     </div>
                     @error('*')
                         <div class="alert alert-danger">{{ $message }}</div>
@@ -50,15 +50,15 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="exampleModalLabel">Add quote</h5>
+                                    <h5 class="modal-title" id="exampleModalLabel">Add wallpaper</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                                     </button>
                                 </div>
-                                <form method="post" action="{{ route('quotes.store') }}" enctype="multipart/form-data">
+                                <form method="post" action="{{ route('wallpapers.store') }}" enctype="multipart/form-data">
                                     @csrf
                                     <div class="modal-body" id="modal_body_create">
                                         <div class="mb-3">
-                                            <label for="category_id" class="form-label">quote Category</label>
+                                            <label for="category_id" class="form-label">Category</label>
                                             <select class="form-select" name="category_id" id="category_id"
                                                 aria-label="Default select example" required>
                                                 <option value="1" selected>Select Parent Category</option>
@@ -75,20 +75,17 @@
                                             </select>
                                         </div> --}}
                                         <div class="mb-3">
-                                            <label for="category" class="form-label">quote Title</label>
+                                            <label for="category" class="form-label">Title</label>
                                             <input type="text" name="title" class="form-control" id="quote_number"
                                                 placeholder="Enter Number" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="category" class="form-label">quote</label>
-                                            <textarea name="quote" id="tiny"></textarea>
+                                            <label for="category" class="form-label">wallpaper</label>
+                                            {{-- <textarea name="quote" id="tiny"></textarea> --}}
+                                            <input type="file" name="wallpaper" class="form-control" id="wallpaper" required />
                                         </div>
                                     </div>
                                     <div class="modal-footer">
-                                        {{-- <div class="add_field">
-                                            <button type="button" class="btn d-inline-flex btn-sm btn-success mx-1"
-                                                onclick="addField()">Add</button>
-                                        </div> --}}
                                         <div class="buttons">
                                             <button type="button" class="btn d-inline-flex btn-sm btn-secondary mx-1"
                                                 data-bs-dismiss="modal">Close</button>
@@ -107,17 +104,18 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="updateModalLabel">Update quote</h5>
+                                    <h5 class="modal-title" id="updateModalLabel">Update wallpaper</h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                                         aria-label="Close"></button>
                                 </div>
-                                <form method="POST" action="{{ route('quotes.update') }}" enctype="multipart/form-data">
+                                <form method="POST" action="{{ route('wallpapers.update') }}"
+                                    enctype="multipart/form-data">
                                     @csrf
                                     <div class="modal-body">
                                         <input type="hidden" name="quote_id" class="form-control" id="quote_hidden"
                                             placeholder="Enter Number" required>
                                         <div class="mb-3">
-                                            <label for="category_id" class="form-label">quote Category</label>
+                                            <label for="category_id" class="form-label">Category</label>
                                             <select class="form-select" name="category_id"
                                                 aria-label="Default select example" required>
                                                 <option id="category_edit" value=""></option>
@@ -137,12 +135,12 @@
                                         {{-- <input type="hidden" name="quote_id" value="" id="quote_id_hidden">
                                         <input type="hidden" name="category_id" value="" id="category_id_hidden"> --}}
                                         <div class="mb-3">
-                                            <label for="category" class="form-label">quote Title</label>
+                                            <label for="category" class="form-label">Title</label>
                                             <input type="text" name="title" class="form-control" id="title"
                                                 placeholder="Enter Number" required>
                                         </div>
                                         <div class="mb-3">
-                                            <label for="category" class="form-label">quote</label>
+                                            <label for="category" class="form-label">wallpaper</label>
                                             <textarea name="quote" id="tiny2"></textarea>
                                         </div>
                                     </div>
@@ -161,7 +159,7 @@
                         <div class="modal-dialog">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title" id="NotifyModel">quote Notifications </h5>
+                                    <h5 class="modal-title" id="NotifyModel">wallpaper Notifications </h5>
                                     <button type="button" class="btn-close" data-bs-dismiss="modal"
                                         aria-label="Close"></button>
                                 </div>
@@ -173,9 +171,7 @@
                                             <select class="form-select" name="category_id" id="wallpaper_category"
                                                 aria-label="Default select example" required>
                                                 <option>Select Parent Category</option>
-                                                {{-- @foreach ($book as $category) --}}
-                                                {{-- <option value="{{ $book->id }}">{{ $book->name }}</option> --}}
-                                                {{-- @endforeach --}}
+
                                             </select>
                                         </div>
                                         <div class="mb-3">
@@ -185,13 +181,13 @@
                                             <input name="wallpaper_id" type="hidden" id="notify_wallpaper_id">
                                         </div>
                                         <div class="mb-3">
-                                            <label for="notify_wallpaper_image_url" class="form-label">quote Image
+                                            <label for="notify_wallpaper_image_url" class="form-label">wallpaper Image
                                                 Url</label>
                                             <input type="text" name="wallpaper_image_url" class="form-control"
-                                                id="notify_wallpaper_image_url" placeholder="Enter quote imageurl">
+                                                id="notify_wallpaper_image_url" placeholder="Enter wallpaper imageurl">
                                         </div>
                                         <div class="mb-3">
-                                            <label for="wallpaper_image" class="form-label">quote Image</label>
+                                            <label for="wallpaper_image" class="form-label">wallpaper Image</label>
                                             <input class="form-control" name="wallpaper_image" type="file"
                                                 id="wallpaper_edit">
                                             <img src="" id="NotifywallpaperImage_edit" height="100"
@@ -225,14 +221,14 @@
                         <thead>
                             <tr>
                                 <th>No.</th>
-                                <th>quote Title</th>
-                                <th>quote</th>
+                                <th>Title</th>
+                                <th>wallpaper</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
 
                         <tbody>
-                            @foreach ($quotes as $key => $quote)
+                            @foreach ($wallpapers as $key => $quote)
                                 <tr>
                                     <td>{{ $key + 1 }}</td>
                                     <td>{{ $quote->title }}</td>
@@ -254,7 +250,7 @@
                         </tbody>
                     </table>
                     <div class="d-flex justify-content-end align-items-center">
-                        {{ $quotes->Links() }}
+                        {{ $wallpapers->Links() }}
                     </div>
                 </div>
             </div>

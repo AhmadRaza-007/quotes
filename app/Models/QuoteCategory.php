@@ -10,6 +10,9 @@ class QuoteCategory extends Model
 {
     use HasFactory;
 
+    // Map to wallpaper_categories table for backward compatibility
+    protected $table = 'wallpaper_categories';
+
     protected $fillable = [
         'category_name',
     ];

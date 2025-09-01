@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Quote;
-use App\Models\QuoteLike;
+use App\Models\Wallpaper;
+use App\Models\Like;
 use Illuminate\Http\Request;
 
 class LikeController extends Controller
@@ -13,33 +13,37 @@ class LikeController extends Controller
     {
         try {
             $request->validate([
-                'quote_id' => 'required',
+                'wallpaper_id' => 'required',
             ]);
 
-            $quote = Quote::find($request->quote_id);
+            $wallpaper = Wallpaper::find($request->wallpaper_id);
 
-            if (!$quote) {
+            if (!$wallpaper) {
                 return response()->json([
-                  'message' => 'quote not found',
-                ], 200);
+                    'message' => 'Wallpaper not found',
+                ], 404);
             }
 
-            $like = QuoteLike::where('quote_id', $request->quote_id)->first();
+            $like = Like::where('wallpaper_id', $request->wallpaper_id)
+                ->where('user_id', auth()->user()->id ?? 1)
+                ->first();
+
             if ($like) {
                 $like->delete();
                 return response()->json([
-                    'message' => 'quote like removed',
-                    'like' => $like,
+                    'message' => 'Wallpaper like removed',
+                    'liked' => false,
                 ], 200);
             }
 
-            $like = new QuoteLike();
-            $like->quote_id = $request->quote_id;
-            $like->user_id = auth()->user()->id;
+            $like = new Like();
+            $like->wallpaper_id = $request->wallpaper_id;
+            $like->user_id = auth()->user()->id ?? 1;
             $like->save();
 
             return response()->json([
-                'message' => 'quote liked successfully',
+                'message' => 'Wallpaper liked successfully',
+                'liked' => true,
             ], 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -48,14 +52,17 @@ class LikeController extends Controller
         }
     }
 
-    public function getLikedByUser($quoteId)
+    public function getLikedByUser($wallpaperId)
     {
         try {
-            $likedQuotes = QuoteLike::where('quote_id', $quoteId)->where('user_id', auth()->user()->id)->get();
+            $liked = Like::where('wallpaper_id', $wallpaperId)
+                ->where('user_id', auth()->user()->id ?? 1)
+                ->count();
 
             return response()->json([
                 'status' => 'success',
-                'quoteLikes' => $likedQuotes->count(),
+                'liked' => $liked > 0,
+                'likeCount' => Like::where('wallpaper_id', $wallpaperId)->count()
             ], 200);
         } catch (\Exception $e) {
             return response()->json([

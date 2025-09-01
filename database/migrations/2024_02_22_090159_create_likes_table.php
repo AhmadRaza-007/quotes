@@ -15,6 +15,8 @@ class CreateLikesTable extends Migration
     {
         Schema::create('likes', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger('user_id');
+            $table->unsignedBigInteger('wallpaper_id');
             $table->timestamps();
         });
     }
@@ -29,3 +31,4 @@ class CreateLikesTable extends Migration
         Schema::dropIfExists('likes');
     }
 }
+// Deprecated: Likes migration is in place but you might consider wallpaper_likes.
