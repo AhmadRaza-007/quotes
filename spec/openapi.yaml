@@ -1,0 +1,699 @@
+openapi: 3.0.3
+info:
+  title: Wallpaper Social API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+security:
+  - bearerAuth: []
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+    CursorPageMeta:
+      type: object
+      properties:
+        next_cursor:
+          type: string
+          nullable: true
+    User:
+      type: object
+      properties:
+        id: { type: string }
+        username: { type: string }
+        display_name: { type: string }
+        avatar_url: { type: string, nullable: true }
+        bio: { type: string, nullable: true }
+        is_admin: { type: boolean, readOnly: true }
+        followers_count: { type: integer }
+        following_count: { type: integer }
+        total_likes: { type: integer }
+        total_posts: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    Wallpaper:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string, nullable: true }
+        media_url: { type: string }
+        thumbnail_url: { type: string, nullable: true }
+        tags:
+          type: array
+          items: { type: string }
+        uploaded_by: { $ref: '#/components/schemas/User' }
+        status: { type: string, enum: [active, hidden], default: active }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        favorites_count:
+          type: integer
+          description: Number of ProfilePosts referencing this wallpaper (platform-wide).
+    ProfilePost:
+      type: object
+      properties:
+        id: { type: string }
+        owner_user: { $ref: '#/components/schemas/User' }
+        wallpaper: { $ref: '#/components/schemas/Wallpaper' }
+        caption: { type: string, nullable: true }
+        likes_count: { type: integer }
+        comments_count: { type: integer }
+        shares_count: { type: integer }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    CreateProfilePostRequest:
+      type: object
+      required: [wallpaper_id]
+      properties:
+        wallpaper_id: { type: string }
+        caption: { type: string, nullable: true }
+    LikeResponse:
+      type: object
+      properties:
+        liked: { type: boolean }
+        likes_count: { type: integer }
+    Comment:
+      type: object
+      properties:
+        id: { type: string }
+        profile_post_id: { type: string }
+        user: { $ref: '#/components/schemas/User' }
+        text: { type: string }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+    ShareRequest:
+      type: object
+      required: [channel]
+      properties:
+        channel:
+          type: string
+          enum: [copy_link, system_share, whatsapp, twitter, facebook, telegram, other]
+
+paths:
+  /auth/register:
+    post:
+      summary: Register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password, display_name]
+              properties:
+                username: { type: string }
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+                display_name: { type: string }
+      responses:
+        '201': { description: Created }
+        '400': { description: Bad Request, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  /auth/login:
+    post:
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email_or_username, password]
+              properties:
+                email_or_username: { type: string }
+                password: { type: string, format: password }
+      responses:
+        '200':
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+        '401': { description: Unauthorized }
+  /auth/logout:
+    post:
+      summary: Logout
+      responses:
+        '204': { description: No Content }
+  /auth/refresh:
+    post:
+      summary: Refresh access token
+      responses:
+        '200':
+          description: Tokens
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token: { type: string }
+                  refresh_token: { type: string }
+
+  /users/{userId}:
+    get:
+      summary: Get public profile
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+    patch:
+      summary: Update own profile
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                display_name: { type: string }
+                avatar_url: { type: string }
+                bio: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+        '403': { description: Forbidden }
+  /users/{userId}/stats:
+    get:
+      summary: Get profile stats summary
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Stats
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total_likes: { type: integer }
+                  total_posts: { type: integer }
+                  followers_count: { type: integer }
+                  following_count: { type: integer }
+
+  /users/{userId}/profile-posts:
+    get:
+      summary: List a user's ProfilePosts (their favorites/reposts)
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 100 }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [created_at, likes_count], default: created_at }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProfilePost' }
+                  next_cursor: { type: string, nullable: true }
+
+  /users/{userId}/follow:
+    post:
+      summary: Follow a user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Followed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following: { type: boolean, example: true }
+                  followers_count: { type: integer }
+        '400': { description: Cannot follow self }
+    delete:
+      summary: Unfollow a user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unfollowed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  following: { type: boolean, example: false }
+                  followers_count: { type: integer }
+
+  /users/{userId}/followers:
+    get:
+      summary: List followers
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  next_cursor: { type: string, nullable: true }
+
+  /users/{userId}/following:
+    get:
+      summary: List following
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  next_cursor: { type: string, nullable: true }
+
+  # HOME = admin wallpapers only (not user posts)
+  /wallpapers:
+    get:
+      summary: Home feed - list admin-uploaded wallpapers
+      parameters:
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+        - in: query
+          name: query
+          schema: { type: string }
+        - in: query
+          name: tags
+          schema:
+            type: array
+            items: { type: string }
+            explode: true
+            style: form
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Wallpaper' }
+                  next_cursor: { type: string, nullable: true }
+    post:
+      summary: Upload wallpaper (admin only)
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, title]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                title:
+                  type: string
+                description:
+                  type: string
+                tags:
+                  type: array
+                  items: { type: string }
+      responses:
+        '201':
+          description: Created (also creates an admin-owned ProfilePost)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallpaper' }
+        '403': { description: Admin only }
+  /wallpapers/{wallpaperId}:
+    get:
+      summary: Get wallpaper details (no like/comment counters here)
+      parameters:
+        - in: path
+          name: wallpaperId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Wallpaper
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallpaper' }
+    patch:
+      summary: Edit wallpaper (admin only)
+      parameters:
+        - in: path
+          name: wallpaperId
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                tags:
+                  type: array
+                  items: { type: string }
+                status:
+                  type: string
+                  enum: [active, hidden]
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Wallpaper' }
+        '403': { description: Admin only }
+    delete:
+      summary: Delete wallpaper (admin only)
+      parameters:
+        - in: path
+          name: wallpaperId
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Deleted }
+        '403': { description: Admin only }
+
+  # ProfilePosts (user references to wallpapers)
+  /profile-posts:
+    post:
+      summary: Create a ProfilePost by favoriting/reposting a wallpaper
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CreateProfilePostRequest' }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProfilePost' }
+        '409':
+          description: Already favorited this wallpaper (unique owner_user_id+wallpaper_id)
+  /profile-posts/{postId}:
+    get:
+      summary: Get ProfilePost (with its like/comment counts)
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Post
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProfilePost' }
+    patch:
+      summary: Edit own ProfilePost (caption only)
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                caption: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProfilePost' }
+        '403': { description: Forbidden }
+    delete:
+      summary: Delete own ProfilePost (remove favorite)
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Deleted }
+        '403': { description: Forbidden }
+
+  # Likes/comments are ONLY on ProfilePosts (not on Wallpapers)
+  /profile-posts/{postId}/like:
+    post:
+      summary: Like ProfilePost (idempotent)
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Liked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LikeResponse' }
+    delete:
+      summary: Unlike ProfilePost (idempotent)
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Unliked
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LikeResponse' }
+  /profile-posts/{postId}/likes:
+    get:
+      summary: List users who liked this ProfilePost
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/User' }
+                  next_cursor: { type: string, nullable: true }
+
+  /profile-posts/{postId}/comments:
+    get:
+      summary: List comments on a ProfilePost
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/Comment' }
+                  next_cursor: { type: string, nullable: true }
+    post:
+      summary: Create comment on a ProfilePost
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [text]
+              properties:
+                text: { type: string }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+
+  /comments/{commentId}:
+    patch:
+      summary: Edit own comment
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema: { type: string }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                text: { type: string }
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comment' }
+        '403': { description: Forbidden }
+    delete:
+      summary: Delete own comment
+      parameters:
+        - in: path
+          name: commentId
+          required: true
+          schema: { type: string }
+      responses:
+        '204': { description: Deleted }
+        '403': { description: Forbidden }
+
+  /profile-posts/{postId}/share:
+    post:
+      summary: Record a share action on a ProfilePost
+      parameters:
+        - in: path
+          name: postId
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ShareRequest' }
+      responses:
+        '200':
+          description: Count incremented
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shares_count: { type: integer }
+
+  # Following feed: posts from users you follow (ProfilePosts)
+  /feed/following:
+    get:
+      summary: Feed of ProfilePosts by followed users
+      parameters:
+        - in: query
+          name: cursor
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20 }
+      responses:
+        '200':
+          description: List
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: array
+                    items: { $ref: '#/components/schemas/ProfilePost' }
+                  next_cursor: { type: string, nullable: true }

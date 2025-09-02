@@ -17,6 +17,43 @@ use Illuminate\Support\Str;
 class UserController extends Controller
 {
 
+    // Public: show a user's public profile summary
+    public function showPublicProfile($userId)
+    {
+        $user = User::findOrFail($userId);
+        // Basic roll-up stats. For performance, consider caching/denormalization.
+        $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
+        $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
+        $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
+        $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
+
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'followers_count' => $followersCount,
+            'following_count' => $followingCount,
+            'total_likes' => (int)$totalLikes,
+            'total_posts' => (int)$totalPosts,
+        ]);
+    }
+
+    // Public: lightweight stats endpoint
+    public function stats($userId)
+    {
+        $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
+        $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
+        $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
+        $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
+
+        return response()->json([
+            'total_likes' => (int)$totalLikes,
+            'total_posts' => (int)$totalPosts,
+            'followers_count' => $followersCount,
+            'following_count' => $followingCount,
+        ]);
+    }
+
     public function register(Request $request)
     {
         try {
