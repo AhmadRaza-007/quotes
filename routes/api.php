@@ -78,6 +78,9 @@ Route::group(['middleware' => 'api'], function () {
         // Admin delete (use POST instead of DELETE)
         Route::post('/wallpapers/{id}/delete', [WallpaperController::class, 'destroy']); // Admin delete
 
+        // Authenticated users can upload wallpapers for their profile (creates a ProfilePost)
+        Route::post('/wallpapers/upload', [WallpaperController::class, 'userUpload']);
+
         // Legacy endpoints (DEPRECATED): likes/favourites/comments directly on wallpapers
         // Keep temporarily for backward compatibility; new apps should use ProfilePost endpoints above
         Route::post('/like', [LegacyLikeController::class, 'like']);

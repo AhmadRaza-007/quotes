@@ -9,6 +9,8 @@ use App\Models\Favourite;
 use App\Models\ProfilePost;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Intervention\Image\ImageManagerStatic as Image;
 
 class WallpaperController extends Controller
 {
@@ -96,13 +98,37 @@ class WallpaperController extends Controller
             'category_id' => 'nullable|exists:wallpaper_categories,id',
         ]);
 
-        $path = $request->file('file')->store('uploads/wallpapers', 'public');
+        // Process image with Intervention Image: auto-resize & crop to required dimensions
+        $imageFile = $request->file('file');
+        $requiredWidth = 1080; // portrait width
+        $requiredHeight = 1920; // portrait height
+
+        // create intervention image and fit to required size, maintaining aspect ratio by cropping
+        $img = Image::make($imageFile->getRealPath())->orientate()->fit($requiredWidth, $requiredHeight);
+
+        // choose stored extension jpg for consistency
+        $fileName = time() . '_' . Str::random(6) . '.jpg';
+        $storePath = 'uploads/wallpapers/' . $fileName;
+
+        Storage::disk('public')->put($storePath, (string) $img->encode('jpg', 90));
+
+        // create thumbnail (smaller version)
+        $thumbImg = $img->resize(360, 640, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        });
+        $thumbName = 'thumb_' . time() . '_' . Str::random(6) . '.jpg';
+        $thumbPath = 'uploads/wallpapers/thumbnails/' . $thumbName;
+        Storage::disk('public')->put($thumbPath, (string) $thumbImg->encode('jpg', 80));
 
         $wallpaper = Wallpaper::create([
             'category_id' => $validated['category_id'] ?? null,
             'title' => $validated['title'],
-            'file_path' => 'storage/' . $path,
+            'file_path' => 'storage/' . $storePath,
             'media_type' => 'image',
+            'owner_user_id' => $user->id,
+            'is_admin' => 1,
+            'thumbnail' => 'storage/' . $thumbPath,
         ]);
 
         // Create a profile post owned by admin referencing this wallpaper
@@ -112,6 +138,61 @@ class WallpaperController extends Controller
         ]);
 
         return response()->json($wallpaper, 201);
+    }
+
+    // Authenticated users can upload wallpapers for their profile (creates a ProfilePost)
+    public function userUpload(Request $request)
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp',
+            'category_id' => 'nullable|exists:wallpaper_categories,id',
+        ]);
+
+        // Process image with Intervention Image: auto-resize & crop to required dimensions for user uploads
+        $imageFile = $request->file('file');
+        $requiredWidth = 1080;
+        $requiredHeight = 1920;
+
+        $img = Image::make($imageFile->getRealPath())->orientate()->fit($requiredWidth, $requiredHeight);
+
+        $fileName = time() . '_' . Str::random(6) . '.jpg';
+        $storePath = 'uploads/wallpapers/' . $fileName;
+        Storage::disk('public')->put($storePath, (string) $img->encode('jpg', 90));
+
+        // thumbnail
+        $thumbImg = $img->resize(360, 640, function ($constraint) {
+            $constraint->aspectRatio();
+            $constraint->upsize();
+        });
+        $thumbName = 'thumb_' . time() . '_' . Str::random(6) . '.jpg';
+        $thumbPath = 'uploads/wallpapers/thumbnails/' . $thumbName;
+        Storage::disk('public')->put($thumbPath, (string) $thumbImg->encode('jpg', 80));
+
+        $wallpaper = Wallpaper::create([
+            'category_id' => $validated['category_id'] ?? null,
+            'title' => $validated['title'],
+            'file_path' => 'storage/' . $storePath,
+            'media_type' => 'image',
+            'owner_user_id' => $user->id,
+            'is_admin' => 0,
+            'thumbnail' => 'storage/' . $thumbPath,
+        ]);
+
+        // Create a profile post owned by the user referencing this wallpaper
+        $post = ProfilePost::firstOrCreate([
+            'owner_user_id' => $user->id,
+            'wallpaper_id' => $wallpaper->id,
+        ], [
+            'caption' => null,
+        ]);
+
+        return response()->json(['wallpaper' => $wallpaper, 'profile_post' => $post], 201);
     }
 
     // Admin-only: update wallpaper metadata
@@ -128,8 +209,27 @@ class WallpaperController extends Controller
         ]);
 
         if ($request->hasFile('file')) {
-            $path = $request->file('file')->store('uploads/wallpapers', 'public');
-            $wallpaper->file_path = 'storage/' . $path;
+            $imageFile = $request->file('file');
+            $requiredWidth = 1080;
+            $requiredHeight = 1920;
+
+            $img = Image::make($imageFile->getRealPath())->orientate()->fit($requiredWidth, $requiredHeight);
+            $fileName = time() . '_' . Str::random(6) . '.jpg';
+            $storePath = 'uploads/wallpapers/' . $fileName;
+            Storage::disk('public')->put($storePath, (string) $img->encode('jpg', 90));
+
+            // create thumbnail
+            $thumbImg = $img->resize(360, 640, function ($constraint) {
+                $constraint->aspectRatio();
+                $constraint->upsize();
+            });
+            $thumbName = 'thumb_' . time() . '_' . Str::random(6) . '.jpg';
+            $thumbPath = 'uploads/wallpapers/thumbnails/' . $thumbName;
+            Storage::disk('public')->put($thumbPath, (string) $thumbImg->encode('jpg', 80));
+
+            // delete old files? (optional)
+            $wallpaper->file_path = 'storage/' . $storePath;
+            $wallpaper->thumbnail = 'storage/' . $thumbPath;
         }
 
         if (array_key_exists('title', $validated)) $wallpaper->title = $validated['title'];
