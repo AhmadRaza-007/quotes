@@ -6,49 +6,48 @@ use App\Http\Controllers\Controller;
 use App\Models\Wallpaper;
 use App\Models\Like;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class LikeController extends Controller
 {
+    // POST /api/like
     public function like(Request $request)
     {
+        // require authenticated user
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+        $request->validate([
+            'wallpaper_id' => 'required|integer|exists:wallpapers,id',
+        ]);
+
+        $wallpaperId = (int)$request->input('wallpaper_id');
+
         try {
-            $request->validate([
-                'wallpaper_id' => 'required',
-            ]);
-
-            $wallpaper = Wallpaper::find($request->wallpaper_id);
-
-            if (!$wallpaper) {
-                return response()->json([
-                    'message' => 'Wallpaper not found',
-                ], 404);
-            }
-
-            $like = Like::where('wallpaper_id', $request->wallpaper_id)
-                ->where('user_id', auth()->user()->id ?? 1)
+            // simple toggle: delete if exists else create
+            $existing = Like::where('wallpaper_id', $wallpaperId)
+                ->where('user_id', $user->id)
                 ->first();
 
-            if ($like) {
-                $like->delete();
-                return response()->json([
-                    'message' => 'Wallpaper like removed',
-                    'liked' => false,
-                ], 200);
+            if ($existing) {
+                $existing->delete();
+                $likeCount = Like::where('wallpaper_id', $wallpaperId)->count();
+                return response()->json(['liked' => false, 'likeCount' => $likeCount], 200);
             }
 
+            // create new like
             $like = new Like();
-            $like->wallpaper_id = $request->wallpaper_id;
-            $like->user_id = auth()->user()->id ?? 1;
+            $like->wallpaper_id = $wallpaperId;
+            $like->user_id = $user->id;
             $like->save();
 
-            return response()->json([
-                'message' => 'Wallpaper liked successfully',
-                'liked' => true,
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage(),
-            ], 500);
+            $likeCount = Like::where('wallpaper_id', $wallpaperId)->count();
+            return response()->json(['liked' => true, 'likeCount' => $likeCount], 201);
+        } catch (\Throwable $e) {
+            Log::error('Like error: ' . $e->getMessage());
+            return response()->json(['message' => 'Server error'], 500);
         }
     }
 

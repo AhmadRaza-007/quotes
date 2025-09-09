@@ -38,7 +38,7 @@ return [
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),
-            'url' => env('APP_URL').'/storage',
+            'url' => env('APP_URL') . '/storage',
             'visibility' => 'public',
         ],
 
@@ -52,6 +52,34 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
         ],
+
+        // 'b2' => [
+        //     'driver' => 's3',
+        //     'key' => env('B2_KEY_ID'),
+        //     'secret' => env('B2_APPLICATION_KEY'),
+        //     'endpoint' => 'https://s3.' . env('B2_REGION') . '.backblazeb2.com',
+        //     'region' => env('B2_REGION'),
+        //     'bucket' => env('B2_BUCKET'),
+        //     'use_path_style_endpoint' => true,
+        //     'options' => [
+        //         'ACL' => 'public-read',
+        //     ],
+        // ],
+
+        'b2' => [
+            'driver' => 's3',
+            'key' => env('B2_KEY_ID'),
+            'secret' => env('B2_APPLICATION_KEY'),
+            'region' => env('B2_REGION', 'us-east-005'),
+            'bucket' => env('B2_BUCKET'),
+            'endpoint' => 'https://s3.' . env('B2_REGION') . '.backblazeb2.com',
+            'use_path_style_endpoint' => true,
+            'visibility' => 'public', // optional, only affects url() helper
+            'options' => [ /* no ACL here */ ],
+        ],
+
+
+
 
     ],
 

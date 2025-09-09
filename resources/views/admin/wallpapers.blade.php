@@ -157,19 +157,19 @@
                             @foreach ($wallpapers as $key => $wp)
                                 <tr>
                                     <td>{{ $key + 1 }}</td>
-                                    <td>{{ $wp->title }}</td>
+                                    <td><a href="{{ $wp->file_url }}" target="_blank">{{ $wp->title }}</a></td>
                                     <td>{{ strtoupper($wp->media_type ?? 'IMAGE') }}</td>
                                     <td>
-                                        @if (($wp->media_type ?? 'image') === 'video')
+                                        {{-- @if (($wp->media_type ?? 'image') === 'video')
                                             <video width="140" height="100" controls preload="metadata"
                                                 @if ($wp->thumbnail) poster="{{ asset($wp->thumbnail) }}" @endif>
                                                 <source src="{{ asset($wp->file_path) }}"
                                                     type="{{ $wp->mime_type ?? 'video/mp4' }}">
                                             </video>
-                                        @else
-                                            <img src="{{ asset($wp->file_path) }}" width="140"
-                                                style="height: 100px; object-fit: cover;">
-                                        @endif
+                                        @else --}}
+                                        <img src="{{ $wp->media_type == 'video' ? $wp->thumbnail_url : $wp->file_url }}"
+                                            width="140" style="height: 100px; object-fit: cover;">
+                                        {{-- @endif --}}
                                     </td>
                                     <td style="min-width: 11rem;">
                                         <a class="btn btn-sm" onclick="editWallpaper({{ $wp->id }})">

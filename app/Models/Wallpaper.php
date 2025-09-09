@@ -13,10 +13,13 @@ class Wallpaper extends Model
         'category_id',
         'title',
         'file_path',
+        'file_url',
+        'thumbnail_url',
         'media_type',
-        'thumbnail',
         'mime_type',
         'file_size',
+        'owner_user_id',
+        'is_admin',
     ];
 
     public function category()

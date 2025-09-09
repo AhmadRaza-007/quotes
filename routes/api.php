@@ -27,8 +27,6 @@ use App\Http\Controllers\API\FollowController;
 | Rules confirmed by product:
 | - Only admins can upload/edit/delete wallpapers.
 | - Home shows admin wallpapers only (no user posts there).
-| - Users create ProfilePosts by favoriting/reposting a wallpaper.
-| - Likes/comments attach to ProfilePosts (not to Wallpapers).
 | - A user's total likes = sum of likes on their ProfilePosts.
 | - No private accounts, reporting, or blocking.
 |--------------------------------------------------------------------------
@@ -44,13 +42,7 @@ Route::group(['middleware' => 'api'], function () {
 
     // Public profile access
     Route::get('/users/{userId}', [UserController::class, 'showPublicProfile']);
-    Route::get('/users/{userId}/profile-posts', [ProfilePostController::class, 'listByUser']);
     Route::get('/users/{userId}/stats', [UserController::class, 'stats']);
-
-    // Public access to a specific ProfilePost
-    Route::get('/profile-posts/{postId}', [ProfilePostController::class, 'show']);
-    Route::get('/profile-posts/{postId}/comments', [PostCommentController::class, 'index']);
-    Route::get('/profile-posts/{postId}/likes', [PostLikeController::class, 'index']);
 
     // Authentication routes
     Route::post('/login', [UserController::class, 'login']);
@@ -72,32 +64,19 @@ Route::group(['middleware' => 'api'], function () {
 
         // Follow system
         Route::post('/users/{userId}/follow', [FollowController::class, 'follow']);
-        Route::delete('/users/{userId}/follow', [FollowController::class, 'unfollow']);
+        // Use POST for unfollow (no DELETE)
+        Route::post('/users/{userId}/unfollow', [FollowController::class, 'unfollow']);
         Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
         Route::get('/users/{userId}/following', [FollowController::class, 'following']);
 
-        // ProfilePosts (favorites/reposts referencing admin wallpapers)
-        Route::post('/profile-posts', [ProfilePostController::class, 'store']);
-        Route::patch('/profile-posts/{postId}', [ProfilePostController::class, 'update']);
-        Route::delete('/profile-posts/{postId}', [ProfilePostController::class, 'destroy']);
-
-        // Likes on ProfilePosts (idempotent)
-        Route::post('/profile-posts/{postId}/like', [PostLikeController::class, 'like']);
-        Route::delete('/profile-posts/{postId}/like', [PostLikeController::class, 'unlike']);
-
-        // Comments on ProfilePosts
-        Route::post('/profile-posts/{postId}/comments', [PostCommentController::class, 'store']);
-        Route::patch('/comments/{commentId}', [PostCommentController::class, 'update']);
-        Route::delete('/comments/{commentId}', [PostCommentController::class, 'destroy']);
-
-        // Following feed (ProfilePosts by followed users)
-        Route::get('/feed/following', [ProfilePostController::class, 'followingFeed']);
 
         // Admin-only wallpaper management
         // IMPORTANT: Protect these with an 'admin' middleware or policy in your app
         Route::post('/wallpapers', [WallpaperController::class, 'store']);   // Admin upload
-        Route::patch('/wallpapers/{id}', [WallpaperController::class, 'update']); // Admin edit
-        Route::delete('/wallpapers/{id}', [WallpaperController::class, 'destroy']); // Admin delete
+        // Admin edit (use POST instead of PATCH)
+        Route::post('/wallpapers/{id}/update', [WallpaperController::class, 'update']); // Admin edit
+        // Admin delete (use POST instead of DELETE)
+        Route::post('/wallpapers/{id}/delete', [WallpaperController::class, 'destroy']); // Admin delete
 
         // Legacy endpoints (DEPRECATED): likes/favourites/comments directly on wallpapers
         // Keep temporarily for backward compatibility; new apps should use ProfilePost endpoints above

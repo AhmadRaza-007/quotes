@@ -26,7 +26,7 @@ Route::get('/clear-cache', function () {
 });
 
 Route::redirect('/', '/admin/dashboard', 302);
-Route::group(['middleware' => 'admin.auth'], function () {
+Route::group(['middleware' => 'auth'], function () {
     Route::prefix('admin')->group(function () {
 
         Route::get('/dashboard', function () {
