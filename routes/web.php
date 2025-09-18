@@ -3,6 +3,7 @@
 
 use App\Http\Controllers\QuoteCategoryController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\WallpaperCategoryController;
 use App\Http\Controllers\WallpaperController;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
@@ -33,11 +34,11 @@ Route::group(['middleware' => 'auth'], function () {
             return view('admin.main');
         })->name('admin.dashboard');
 
-        Route::get('category', [QuoteCategoryController::class, 'index'])->name('category');
-        Route::post('category/store', [QuoteCategoryController::class, 'store'])->name('category.store');
-        Route::get('category/edit/{id}', [QuoteCategoryController::class, 'edit'])->name('category.edit');
-        Route::post('category/update', [QuoteCategoryController::class, 'update'])->name('category.update');
-        Route::get('category/delete/{id}', [QuoteCategoryController::class, 'destroy'])->name('category.delete');
+        Route::get('category', [WallpaperCategoryController::class, 'index'])->name('category');
+        Route::post('category/store', [WallpaperCategoryController::class, 'store'])->name('category.store');
+        Route::get('category/edit/{id}', [WallpaperCategoryController::class, 'edit'])->name('category.edit');
+        Route::post('category/update', [WallpaperCategoryController::class, 'update'])->name('category.update');
+        Route::get('category/delete/{id}', [WallpaperCategoryController::class, 'destroy'])->name('category.delete');
         // Wallpapers CRUD
         Route::get('/wallpapers', [WallpaperController::class, 'index'])->name('wallpapers');
         Route::post('/wallpaper/store', [WallpaperController::class, 'store'])->name('wallpapers.store');
@@ -71,4 +72,5 @@ Route::get('login/google', [UserController::class, 'redirectToGoogleProvider'])-
 Route::get('google/callback', [UserController::class, 'handleProviderCallback']);
 Route::get('login/facebook', [UserController::class, 'redirectToFacebook'])->name('facebook.login');
 Route::get('facebook/callback', [UserController::class, 'handleFacebookCallback']);
+
 

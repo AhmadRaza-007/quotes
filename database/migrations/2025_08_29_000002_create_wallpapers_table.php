@@ -11,13 +11,15 @@ return new class extends Migration
         Schema::create('wallpapers', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('category_id');
-            $table->string('title');
-            $table->string('file_path');
-            $table->string('media_type')->default('image'); // image | video | live
-            $table->string('thumbnail')->nullable();
-            $table->string('mime_type')->nullable();
+            $table->string('title', 255);
+            $table->string('file_path', 255);
+            $table->string('file_url', 255); // required
+            $table->string('media_type', 255)->default('image'); // image | video | live
+            $table->text('thumbnail_url')->nullable(); // text instead of string
+            $table->string('mime_type', 255)->nullable();
             $table->unsignedBigInteger('file_size')->nullable();
-            $table->timestamps();
+            $table->timestamp('created_at')->nullable();
+            $table->timestamp('updated_at')->nullable();
         });
     }
 

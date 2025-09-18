@@ -33,16 +33,12 @@ use App\Http\Controllers\API\FollowController;
 */
 
 Route::group(['middleware' => 'api'], function () {
-    // Public routes (no authentication required)
-    Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
-    Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
-
-    Route::get('/categories', [CategoryController::class, 'categories']);
-    Route::get('/categories/{id}/wallpapers', [CategoryController::class, 'categoriesWithWallpapers']);
-
     // Public profile access
     Route::get('/users/{userId}', [UserController::class, 'showPublicProfile']);
     Route::get('/users/{userId}/stats', [UserController::class, 'stats']);
+
+    // New endpoint for profiles sorted by followers
+    Route::get('/profiles/by-followers', [UserController::class, 'profilesByFollowers']);
 
     // Authentication routes
     Route::post('/login', [UserController::class, 'login']);
@@ -55,12 +51,23 @@ Route::group(['middleware' => 'api'], function () {
     Route::post('/auth/google', [SocialAuthController::class, 'handleGoogleAuth']);
     Route::post('/auth/facebook', [SocialAuthController::class, 'handleFacebookAuth']);
 
+    // Public routes (no authentication required)
+        Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
+        Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
+
     // Protected routes (authentication required)
     Route::group(['middleware' => 'auth:sanctum'], function () {
         // User account
         Route::post('/logout', [UserController::class, 'logout']);
         Route::post('/delete-user', [UserController::class, 'deleteUser']);
         Route::get('/profile', [UserController::class, 'profile']);
+
+        // // Public routes (no authentication required)
+        // Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
+        // Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
+
+        Route::get('/categories', [CategoryController::class, 'categories']);
+        Route::get('/categories/{id}/wallpapers', [CategoryController::class, 'categoriesWithWallpapers']);
 
         // Follow system
         Route::post('/users/{userId}/follow', [FollowController::class, 'follow']);
@@ -94,3 +101,4 @@ Route::group(['middleware' => 'api'], function () {
         Route::get('/get-comment/{wallpaperId}', [LegacyCommentController::class, 'getComment']);
     });
 });
+

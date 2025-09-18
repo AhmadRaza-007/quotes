@@ -18,7 +18,7 @@ class UserController extends Controller
      */
     public function index()
     {
-        // return User::create(['name' => 'admin', 'email' => 'admin@admin.com', 'password' => Hash::make('123123123'), 'user_type' => 1]);
+        // return User::create(['name' => 'test', 'email' => 'test@test.com', 'password' => Hash::make('123123123'), 'user_type' => 2]);
         return view('admin.auth.login');
     }
 

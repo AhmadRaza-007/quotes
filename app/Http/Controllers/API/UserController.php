@@ -367,5 +367,40 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    public function profilesByFollowers(Request $request)
+    {
+        try {
+            $perPage = $request->get('per_page', 15);
+
+            // Get users with their follower counts, ordered by followers descending
+            $users = User::select('users.*')
+                ->selectRaw('(SELECT COUNT(*) FROM follows WHERE follows.followee_id = users.id) as followers_count')
+                ->orderBy('followers_count', 'DESC')
+                ->paginate($perPage);
+
+            // Transform the results to include follower count in the response
+            $users->getCollection()->transform(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'followers_count' => (int)$user->followers_count,
+                    'created_at' => $user->created_at,
+                    'updated_at' => $user->updated_at
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $users
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
 

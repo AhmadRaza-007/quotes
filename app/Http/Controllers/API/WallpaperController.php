@@ -7,6 +7,7 @@ use App\Models\Wallpaper;
 use App\Models\Like;
 use App\Models\Favourite;
 use App\Models\ProfilePost;
+use App\Models\WallpaperFavourite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -17,20 +18,26 @@ class WallpaperController extends Controller
     public function index(Request $request)
     {
         try {
+            // return $user = auth('sanctum')->user();
+            // return Like::where('wallpaper_id', 31)
+            //             ->where('user_id', $user->id)
+            //             ->exists();
             $wallpapers = Wallpaper::with('category')
                 ->latest()
                 ->paginate($request->count ?? 10);
 
             $wallpapers->getCollection()->transform(function ($wp) {
-                $wp->file_url = $wp->file_path ? url($wp->file_path) : null;
+                // $wp->file_url = $wp->file_path ? url($wp->file_path) : null;
+                $wp->file_url = $wp->file_url;
                 $wp->thumbnail_url = $wp->thumbnail ? url($wp->thumbnail) : null;
                 // Legacy fields (will be ignored by new clients):
-                if (auth()->check()) {
+                $user = auth('sanctum')->user();
+                if ($user) {
                     $wp->is_liked = Like::where('wallpaper_id', $wp->id)
-                        ->where('user_id', auth()->id())
+                        ->where('user_id', $user->id)
                         ->exists();
-                    $wp->is_favourite = Favourite::where('wallpaper_id', $wp->id)
-                        ->where('user_id', auth()->id())
+                    $wp->is_favourite = WallpaperFavourite::where('wallpaper_id', $wp->id)
+                        ->where('user_id', $user->id)
                         ->exists();
                 } else {
                     $wp->is_liked = false;
@@ -60,12 +67,13 @@ class WallpaperController extends Controller
             $wp->file_url = $wp->file_path ? url($wp->file_path) : null;
             $wp->thumbnail_url = $wp->thumbnail ? url($wp->thumbnail) : null;
 
-            if (auth()->check()) {
+            $user = auth('sanctum')->user();
+            if ($user) {
                 $wp->is_liked = Like::where('wallpaper_id', $wp->id)
-                    ->where('user_id', auth()->id())
+                    ->where('user_id', $user->id)
                     ->exists();
                 $wp->is_favourite = Favourite::where('wallpaper_id', $wp->id)
-                    ->where('user_id', auth()->id())
+                    ->where('user_id', $user->id)
                     ->exists();
             } else {
                 $wp->is_liked = false;
