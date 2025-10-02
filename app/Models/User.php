@@ -41,4 +41,15 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function wallpapers()
+    {
+        return $this->hasMany(Wallpaper::class, 'owner_user_id');
+    }
+
+    // app/Models/User.php
+    public function categories()
+    {
+        return $this->hasMany(WallpaperCategory::class, 'owner_user_id');
+    }
 }

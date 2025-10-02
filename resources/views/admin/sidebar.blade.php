@@ -45,13 +45,33 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('category') }}">
-                        <i class="bi bi-bar-chart"></i> Categories
-                    </a>
+                    <div class="d-flex align-items-center">
+                        <!-- This link goes to the category page -->
+                        <a class="nav-link" href="{{ route('category') }}">Categories</a>
+
+                        <!-- This span toggles the dropdown -->
+                        <span class="ms-auto" data-bs-toggle="collapse" data-bs-target="#categories-menu" role="button"
+                            aria-expanded="false" aria-controls="categories-menu" style="cursor:pointer;">
+                            <i class="bi bi-chevron-down"></i>
+                        </span>
+                    </div>
+
+                    <!-- Collapsible dropdown -->
+                    <div class="collapse" id="categories-menu">
+                        <ul class="nav flex-column ms-3">
+                            <div class="mt-2" style="max-height: 200px; overflow-y: auto;">
+                                @include('admin.categories.category-dropdown', [
+                                    'categories' => $categories,
+                                ])
+                            </div>
+                        </ul>
+                    </div>
                 </li>
+
+
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('wallpapers') }}">
-                        <i class="bi bi-image"></i> Wallpapers
+                    <a class="nav-link" href="{{ route('admin.users.categories.index', 1) }}">
+                        <i class="bi bi-image"></i> Admin
                     </a>
                 </li>
                 <li class="nav-item">
@@ -59,23 +79,6 @@
                         <i class="bi bi-image"></i> Users
                     </a>
                 </li>
-                {{-- <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-chat"></i> Messages
-                        <span
-                            class="badge bg-soft-primary text-primary rounded-pill d-inline-flex align-items-center ms-auto">6</span>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-bookmarks"></i> Collections
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="#">
-                        <i class="bi bi-people"></i> Users
-                    </a>
-                </li> --}}
             </ul>
             <!-- Divider -->
             <hr class="navbar-divider my-5 opacity-20">
@@ -97,3 +100,8 @@
         </div>
     </div>
 </nav>
+<script>
+    document.querySelector('a[href="{{ route('category') }}"]').addEventListener('click', function(e) {
+        e.stopPropagation(); // prevent Bootstrap from treating it as collapse trigger
+    });
+</script>

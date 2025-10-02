@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Like;
+use App\Models\Wallpaper;
 use App\Models\WallpaperFavourite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,14 +16,36 @@ class UserController extends Controller
 {
 
     // Public: show a user's public profile summary
-    public function showPublicProfile($userId)
+    public function showPublicProfile(Request $request, $userId)
     {
         $user = User::findOrFail($userId);
-        // Basic roll-up stats. For performance, consider caching/denormalization.
+
+        // Basic roll-up stats
         $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
         $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
         $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
         $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
+
+        // Wallpapers pagination
+        $perPage = $request->get('per_page', 15);
+        $wallpapers = Wallpaper::where('owner_user_id', $userId)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage, [
+                'id',
+                'title',
+                'file_url',
+                'thumbnail_url',
+                'media_type',
+                'created_at'
+            ]);
+
+        $isFollowing = false;
+        if (auth('sanctum')->check()) {
+            $isFollowing = \DB::table('follows')
+                ->where('follower_id', auth('sanctum')->id())   // current sanctum-auth user
+                ->where('followee_id', $user->id)               // profile user
+                ->exists();
+        }
 
         return response()->json([
             'id' => $user->id,
@@ -32,8 +55,123 @@ class UserController extends Controller
             'following_count' => $followingCount,
             'total_likes' => (int)$totalLikes,
             'total_posts' => (int)$totalPosts,
+            'is_following' => $isFollowing,
+
+            // Wallpapers with pagination
+            'wallpapers' => $wallpapers->items(),
+            'pagination' => [
+                'current_page' => $wallpapers->currentPage(),
+                'per_page' => $wallpapers->perPage(),
+                'total' => $wallpapers->total(),
+                'last_page' => $wallpapers->lastPage(),
+                'from' => $wallpapers->firstItem(),
+                'to' => $wallpapers->lastItem(),
+            ]
         ]);
     }
+
+    // Public: get paginated public profiles with latest wallpapers
+    public function publicProfiles(Request $request)
+    {
+        try {
+            $perPage = $request->get('per_page', 15);
+            $page = $request->get('page', 1);
+
+            // Get paginated users
+            $users = User::paginate($perPage, ['*'], 'page', $page);
+
+            // Transform each user to include profile stats and latest wallpapers
+            // $users->getCollection()->transform(function ($user) {
+            //     // Basic stats
+            //     $followersCount = \DB::table('follows')->where('followee_id', $user->id)->count();
+            //     $followingCount = \DB::table('follows')->where('follower_id', $user->id)->count();
+            //     $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $user->id)->sum('likes_count');
+            //     $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $user->id)->count();
+
+            //     // Get latest 6 user-uploaded wallpapers
+            //     $latestWallpapers = Wallpaper::where('owner_user_id', $user->id)
+            //         // ->where('is_admin', 0) // User-uploaded wallpapers only
+            //         ->orderBy('created_at', 'desc')
+            //         ->take(6)
+            //         ->get(['id', 'title', 'file_url', 'thumbnail_url', 'media_type', 'created_at']);
+
+            //     return [
+            //         'id' => $user->id,
+            //         'name' => $user->name,
+            //         'email' => $user->email,
+            //         'followers_count' => $followersCount,
+            //         'following_count' => $followingCount,
+            //         'total_likes' => (int)$totalLikes,
+            //         'total_posts' => (int)$totalPosts,
+            //         'latest_wallpapers' => $latestWallpapers,
+            //         'is_following' => ,
+            //     ];
+            // });
+
+            $users->getCollection()->transform(function ($user) {
+                // Basic stats
+                $followersCount = \DB::table('follows')->where('followee_id', $user->id)->count();
+                $followingCount = \DB::table('follows')->where('follower_id', $user->id)->count();
+                $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $user->id)->sum('likes_count');
+                $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $user->id)->count();
+
+                // Get latest 6 wallpapers
+                $latestWallpapers = Wallpaper::where('owner_user_id', $user->id)
+                    ->orderBy('created_at', 'desc')
+                    ->take(6)
+                    ->get(['id', 'title', 'file_url', 'thumbnail_url', 'media_type', 'created_at']);
+
+                // Check if logged-in user is following this profile
+                $isFollowing = false;
+                if (auth('sanctum')->check()) {
+                    $isFollowing = \DB::table('follows')
+                        ->where('follower_id', auth('sanctum')->id())   // current sanctum-auth user
+                        ->where('followee_id', $user->id)               // profile user
+                        ->exists();
+                }
+
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'followers_count' => $followersCount,
+                    'following_count' => $followingCount,
+                    'total_likes' => (int)$totalLikes,
+                    'total_posts' => (int)$totalPosts,
+                    'latest_wallpapers' => $latestWallpapers,
+                    'is_following' => $isFollowing,
+                ];
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $users->items(),
+                'pagination' => [
+                    'current_page' => $users->currentPage(),
+                    'per_page' => $users->perPage(),
+                    'total' => $users->total(),
+                    'last_page' => $users->lastPage(),
+                    'from' => $users->firstItem(),
+                    'to' => $users->lastItem(),
+                ]
+            ], 200);
+        } catch (\Exception $exception) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    // // Public: lightweight stats endpoint
+    // public function stats($userId)
+    // {
+    //     $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
+    //     $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
+    //     $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
+    //     $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
+
+    //     $user = auth('sanctum')->user();
 
     // Public: lightweight stats endpoint
     public function stats($userId)
@@ -43,13 +181,26 @@ class UserController extends Controller
         $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
         $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
 
+        $user = auth('sanctum')->user();
+        $isFollowing = false;
+
+        // Check if authenticated user is following the target user
+        if ($user) {
+            $isFollowing = \DB::table('follows')
+                ->where('follower_id', $user->id)
+                ->where('followee_id', $userId)
+                ->exists();
+        }
+
         return response()->json([
             'total_likes' => (int)$totalLikes,
             'total_posts' => (int)$totalPosts,
             'followers_count' => $followersCount,
             'following_count' => $followingCount,
+            'is_following' => $isFollowing,
         ]);
     }
+    // }
 
     public function register(Request $request)
     {
@@ -403,4 +554,3 @@ class UserController extends Controller
         }
     }
 }
-

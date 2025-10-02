@@ -37,6 +37,15 @@
                                     @csrf
                                     <div class="modal-body">
                                         <div class="mb-3">
+                                            <label class="form-label">Parent Category</label>
+                                            <select class="form-select" name="parent_id" id="parent_id" required>
+                                                <option id="parent_id" value="">Select Parent Category</option>
+                                                @foreach (getCategories() as $item)
+                                                    <option value="{{ $item->id }}">{{ $item->category_name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="category" class="form-label">Category Name</label>
                                             <input type="text" name="category_name" class="form-control" id="category"
                                                 placeholder="Enter Name" required>
@@ -67,8 +76,8 @@
                                     <div class="modal-body">
                                         <div class="mb-3">
                                             <label for="category_edit" class="form-label">Category Name</label>
-                                            <input type="text" name="category_name" class="form-control" id="category_edit"
-                                                placeholder="Enter Name" required>
+                                            <input type="text" name="category_name" class="form-control"
+                                                id="category_edit" placeholder="Enter Name" required>
                                             <input name="category_id" type="hidden" id="category_id">
 
                                         </div>
@@ -87,8 +96,9 @@
                         <thead>
                             <tr>
                                 <th>Category Name</th>
+                                <th>Parent Category</th>
+                                <th>User</th>
                                 <th>Actions</th>
-
                             </tr>
                         </thead>
 
@@ -96,11 +106,14 @@
                             @foreach ($categories as $category)
                                 <tr class="row1" data-id="">
                                     <td>{{ $category->category_name }}</td>
+                                    <td>{{ $category->parent?->category_name ?? '-' }}</td>
+                                    <td>{{ $category->user?->name ?? '-' }}</td>
                                     <td>
                                         <a class="btn btn-sm" onclick="editCategory({{ $category->id }})">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a href="{{ url('admin/category/delete/' . $category->id) }}" class="btn delete btn-sm">
+                                        <a href="{{ url('admin/category/delete/' . $category->id) }}"
+                                            class="btn delete btn-sm">
                                             <i class="fas fa-trash-alt"></i>
                                         </a>
                                     </td>

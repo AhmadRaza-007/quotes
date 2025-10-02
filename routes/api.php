@@ -35,6 +35,7 @@ use App\Http\Controllers\API\FollowController;
 Route::group(['middleware' => 'api'], function () {
     // Public profile access
     Route::get('/users/{userId}', [UserController::class, 'showPublicProfile']);
+    Route::get('/public-profiles', [UserController::class, 'publicProfiles']);
     Route::get('/users/{userId}/stats', [UserController::class, 'stats']);
 
     // New endpoint for profiles sorted by followers

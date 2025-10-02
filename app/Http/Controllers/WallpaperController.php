@@ -3,17 +3,19 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use App\Models\Wallpaper;
+use App\Models\WallpaperCategory;
 use Symfony\Component\Process\Process;
 
 class WallpaperController extends Controller
 {
     public function index()
     {
-        $wallpapers = Wallpaper::with('category')->paginate(10);
+        $wallpapers = Wallpaper::with(['category', 'owner'])->paginate(10);
         return view('admin.wallpapers', compact('wallpapers'));
     }
 
@@ -153,14 +155,25 @@ class WallpaperController extends Controller
 
     public function store(Request $request)
     {
+
+        // $request->validate([
+        //     'title' => 'nullable|max:255',
+        //     'file' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,webm,webp,mov,avi,m4v|max:102400',
+        //     'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
+        //     'category_id' => 'required',
+        //     'media_type' => 'nullable|in:image,video,live',
+        // ]);
+
         $request->validate([
-            'title' => 'required|max:255',
+            'title' => 'nullable|max:255',
             'file' => 'required|file|mimes:jpg,jpeg,png,gif,mp4,webm,webp,mov,avi,m4v|max:102400',
             'thumbnail' => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'category_id' => 'required',
             'media_type' => 'nullable|in:image,video,live',
+            'owner_user_id' => 'nullable|exists:users,id', // Add this line
         ]);
 
+        // return 'hello';
         $uploaded = $request->file('file');
         $extension = $uploaded->getClientOriginalExtension();
         $fileName = time() . '_' . Str::random(6) . '.' . $extension;
@@ -285,6 +298,17 @@ class WallpaperController extends Controller
 
         @unlink($tmpFile);
 
+        // Wallpaper::create([
+        //     'title'             => $request->title,
+        //     'category_id'       => $request->category_id,
+        //     'file_path'         => $b2Path,
+        //     'media_type'        => $mediaType,
+        //     'mime_type'         => $mimeType,
+        //     'file_size'         => $fileSize,
+        //     'file_url'          => $fileUrl,
+        //     'thumbnail_url'     => $thumbnailUrl,
+        // ]);
+
         Wallpaper::create([
             'title'             => $request->title,
             'category_id'       => $request->category_id,
@@ -294,6 +318,8 @@ class WallpaperController extends Controller
             'file_size'         => $fileSize,
             'file_url'          => $fileUrl,
             'thumbnail_url'     => $thumbnailUrl,
+            'owner_user_id'     => $request->owner_user_id, // Add this line
+            'is_admin'          => 1, // Since admin is uploading
         ]);
 
         return redirect()->route('wallpapers')->with('success', 'Wallpaper saved successfully');
@@ -318,6 +344,7 @@ class WallpaperController extends Controller
             'thumbnail'  => 'nullable|image|mimes:jpg,jpeg,png|max:10240',
             'category_id' => 'required',
             'media_type' => 'nullable|in:image,video,live',
+            'owner_user_id' => 'nullable|exists:users,id', // Add this line
         ]);
 
         $wallpaper = Wallpaper::findOrFail($request->id);
@@ -456,6 +483,7 @@ class WallpaperController extends Controller
 
         $wallpaper->thumbnail_url = $thumbnailUrl;
         $wallpaper->media_type    = $mediaType;
+        $wallpaper->owner_user_id = $request->owner_user_id;
         $wallpaper->save();
 
         return redirect()->back()->with('success', 'Wallpaper updated successfully.');
@@ -489,5 +517,19 @@ class WallpaperController extends Controller
         $wallpaper->delete();
 
         return redirect()->route('wallpapers')->with('success', 'Wallpaper deleted successfully');
+    }
+
+    public function getWallpapersByCategory(WallpaperCategory $category)
+    {
+        $allWallpapers = $category->getAllWallpapers();
+        $perPage = 10;
+        $currentPage = request()->get('page', 1);
+        $currentPageWallpapers = $allWallpapers->slice(($currentPage - 1) * $perPage, $perPage)->all();
+        $wallpapers = new LengthAwarePaginator($currentPageWallpapers, count($allWallpapers), $perPage, $currentPage, [
+            'path' => request()->url(),
+            'query' => request()->query(),
+        ]);
+
+        return view('admin.wallpapers', compact('wallpapers'));
     }
 }

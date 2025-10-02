@@ -24,7 +24,7 @@ class Wallpaper extends Model
 
     public function category()
     {
-        return $this->belongsTo(WallpaperCategory::class);
+        return $this->belongsTo(WallpaperCategory::class, 'category_id');
     }
 
     public function likes()
@@ -40,5 +40,10 @@ class Wallpaper extends Model
     public function favourites()
     {
         return $this->hasMany(Favourite::class);
+    }
+
+    public function owner()
+    {
+        return $this->belongsTo(User::class, 'owner_user_id');
     }
 }
