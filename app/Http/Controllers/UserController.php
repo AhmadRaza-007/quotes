@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApiKey;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -462,7 +463,8 @@ class UserController extends Controller
 
         // 2) auto-generate thumbnail if video
         if ($mediaType === 'video' && !$thumbnailPath) {
-            $ffmpegBin = '/opt/homebrew/bin/ffmpeg';
+            // $ffmpegBin = '/opt/homebrew/bin/ffmpeg';
+            $ffmpegBin = '/usr/bin/ffmpeg';
             if (!$ffmpegBin) {
                 Log::error('FFmpeg not found on server!');
             } else {
@@ -474,7 +476,7 @@ class UserController extends Controller
                 }
 
                 $tmpThumb = $localThumbDir . DIRECTORY_SEPARATOR . $autoName;
-                $cmd = $ffmpegBin . ' -y -i ' . escapeshellarg($tmpFile) . ' -ss 00:00:01 -vframes 1 -q:v 2 ' . escapeshellarg($tmpThumb) . ' 2>&1';
+                $cmd = $ffmpegBin . ' -y -i ' . escapeshellarg($tmpFile) . ' -ss 00:00:00 -vframes 1 -q:v 2 ' . escapeshellarg($tmpThumb) . ' 2>&1';
                 $output = shell_exec($cmd);
 
                 if (file_exists($tmpThumb)) {
@@ -524,7 +526,7 @@ class UserController extends Controller
         $wallpaper = Wallpaper::where('owner_user_id', $userId)->findOrFail($wallpaperId);
         $wallpaper->delete();
 
-        return redirect()->route('admin.users.edit', $userId)->with('success', 'Wallpaper deleted successfully.');
+        return redirect()->back()->with('success', 'Wallpaper deleted successfully.');
     }
 
     // Add these methods to UserController
@@ -577,8 +579,9 @@ class UserController extends Controller
             $wallpapersQuery->where('id', $searchTerm);
         }
 
+        // Show 100 wallpapers per page (10 rows × 10 columns)
         $wallpapers = $wallpapersQuery->orderBy('created_at', 'desc')
-            ->paginate(12);
+            ->paginate(100);
 
         return view('admin.users.categories.wallpapers', compact('user', 'category', 'wallpapers'));
     }
@@ -894,5 +897,107 @@ class UserController extends Controller
         $category->delete();
 
         return redirect()->route('admin.users.categories.index', $userId)->with('success', 'Category and all related wallpapers deleted successfully.');
+    }
+
+    public function getUserApiKeys($userId)
+    {
+        $user = User::findOrFail($userId);
+        $apiKeys = $user->apiKeys()->latest()->get();
+
+        // Build HTML string manually
+        if ($apiKeys->isEmpty()) {
+            return '<p class="text-muted">No API keys found for this user.</p>';
+        }
+
+        $html = '<table class="table table-bordered align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Created</th>
+                <th>Last Used</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>';
+
+        foreach ($apiKeys as $key) {
+            $html .= '<tr>
+            <td>' . e($key->name) . '<br><small class="text-muted">ID: ' . e($key->id) . '</small></td>
+            <td>' . $key->created_at->format('M d, Y h:i A') . '</td>
+            <td>' . ($key->last_used_at ? $key->last_used_at->format('M d, Y h:i A') : 'Never') . '</td>
+            <td>' . ($key->expires_at ? $key->expires_at->format('M d, Y h:i A') : 'Never') . '</td>
+            <td><span class="badge ' . ($key->is_active ? 'bg-success' : 'bg-danger') . '">' . ($key->is_active ? 'Active' : 'Inactive') . '</span></td>
+            <td><button class="btn btn-sm btn-danger" onclick="deleteApiKey(' . $key->id . ')">Delete</button></td>
+        </tr>';
+        }
+
+        $html .= '</tbody></table>';
+
+        return $html;
+    }
+
+
+    /**
+     * Display API keys management page
+     */
+    public function apiKeys(Request $request)
+    {
+        $users = User::withCount('apiKeys');
+
+        // Search functionality
+        if ($request->has('search')) {
+            $users->where('name', 'like', '%' . $request->search . '%')
+                ->orWhere('email', 'like', '%' . $request->search . '%');
+        }
+
+        $users = $users->paginate(10);
+
+        return view('admin.api-keys.index', compact('users'));
+    }
+
+    /**
+     * Generate API key for a user
+     */
+    public function generateApiKey(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'name' => 'required|string|max:255',
+            'expires_in_days' => 'nullable|integer|min:1|max:365'
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        $expiresAt = null;
+        if ($request->has('expires_in_days')) {
+            $expiresAt = now()->addDays($request->expires_in_days);
+        }
+
+        $apiKey = $user->createApiKey($request->name, $expiresAt);
+
+        return redirect()->route('admin.api-keys.index')
+            ->with('success', 'API key generated successfully for ' . $user->name)
+            ->with('api_key', $apiKey->key); // Flash the key for one-time display
+    }
+
+    public function userApiKeys($userId)
+    {
+        $user = User::with('apiKeys')->findOrFail($userId);
+
+        return view('admin.api-keys.user-keys', compact('user'))->render();
+    }
+
+    /**
+     * Delete an API key
+     */
+    public function deleteApiKey($id)
+    {
+        $apiKey = ApiKey::findOrFail($id);
+        $apiKey->delete();
+
+        return redirect()->route('admin.api-keys.index')
+            ->with('success', 'API key deleted successfully');
     }
 }

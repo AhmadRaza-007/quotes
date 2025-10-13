@@ -29,7 +29,7 @@ class WallpaperController extends Controller
             $wallpapers->getCollection()->transform(function ($wp) {
                 // $wp->file_url = $wp->file_path ? url($wp->file_path) : null;
                 $wp->file_url = $wp->file_url;
-                // $wp->thumbnail_url = $wp->thumbnail ? url($wp->thumbnail) : null;
+                $wp->thumbnail_url = $wp->thumbnail ? url($wp->thumbnail) : null;
                 // Legacy fields (will be ignored by new clients):
                 $user = auth('sanctum')->user();
                 if ($user) {

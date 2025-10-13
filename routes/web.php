@@ -113,6 +113,14 @@ Route::group(['middleware' => 'auth'], function () {
             Route::put('/users/{id}', [UserController::class, 'update'])->name('admin.users.update');
             Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
 
+            // API Key management routes
+            Route::get('/api-keys', [UserController::class, 'apiKeys'])->name('admin.api-keys.index');
+            Route::post('/api-keys/generate', [UserController::class, 'generateApiKey'])->name('admin.api-keys.generate');
+            Route::delete('/api-keys/{id}', [UserController::class, 'deleteApiKey'])->name('admin.api-keys.delete');
+            Route::get('/api-keys/user/{userId}', [UserController::class, 'userApiKeys'])->name('admin.api-keys.user');
+            Route::get('/api-keys/user/{id}', [UserController::class, 'getUserApiKeys']);
+
+
             // Route::post('/users/{id}/categories', [UserController::class, 'storeCategory'])->name('admin.users.categories.store');
 
             // NEW: User category and wallpaper management routes

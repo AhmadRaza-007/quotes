@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Str;
 
 class User extends Authenticatable
 {
@@ -51,5 +52,25 @@ class User extends Authenticatable
     public function categories()
     {
         return $this->hasMany(WallpaperCategory::class, 'owner_user_id');
+    }
+
+    // API Keys relationship
+    public function apiKeys()
+    {
+        return $this->hasMany(ApiKey::class);
+    }
+
+    /**
+     * Generate a new API key for the user
+     */
+    public function createApiKey($name, $expiresAt = null)
+    {
+        $key = Str::random(64);
+
+        return $this->apiKeys()->create([
+            'name' => $name,
+            'key' => $key,
+            'expires_at' => $expiresAt,
+        ]);
     }
 }

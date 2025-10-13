@@ -7,6 +7,9 @@
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     {{-- /* Webpixels CSS */
     /* Utility and component-centric Design System based on Bootstrap for fast, responsive UI development */
     /* URL: https://github.com/webpixels/css */ --}}

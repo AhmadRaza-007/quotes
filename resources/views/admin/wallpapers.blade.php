@@ -422,6 +422,7 @@
                         </thead>
                         <tbody>
                             @foreach ($wallpapers as $key => $wp)
+                                <code>{{ $wp }}</code>
                                 <tr>
                                     <td>{{ $key + 1 }}</td>
                                     <td><a href="{{ $wp->file_url }}" target="_blank">{{ $wp->title }}</a></td>
@@ -467,29 +468,6 @@
 @endsection
 @section('script')
     <script>
-        // function editWallpaper(id) {
-        //     $.ajax({
-        //         url: "{{ url('/wallpapers/edit') }}/" + id,
-        //         // url: "{{ url('/wallpapers/edit/') }}" + id,
-
-        //         success: function(data) {
-        //             $('#wp_id').val(data.id);
-        //             $('#wp_title').val(data.title);
-        //             $('#category_edit').val(data.category_id);
-        //             $('#category_edit').text(data.category?.category_name ?? '');
-        //             $('#category_id_edit').val(data.category_id);
-        //             $('#wp_media_type').val(data.media_type ?? '');
-        //             if (data.thumbnail) {
-        //                 $('#thumb_preview').attr('src', data.thumbnail.startsWith('http') ? data.thumbnail : (
-        //                     '{{ url('/') }}/' + data.thumbnail)).show();
-        //             } else {
-        //                 $('#thumb_preview').hide();
-        //             }
-        //             $('#updateModalLabel').modal('show');
-        //         }
-        //     })
-        // }
-
         function editWallpaper(id) {
             $.ajax({
                 url: "{{ route('wallpapers.edit', ':id') }}".replace(':id', id),

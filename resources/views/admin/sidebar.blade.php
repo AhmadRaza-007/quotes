@@ -68,6 +68,11 @@
                     </div>
                 </li>
 
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ route('admin.api-keys.index') }}">
+                        <i class="bi bi-key"></i> API Keys
+                    </a>
+                </li>
 
                 <li class="nav-item">
                     <a class="nav-link" href="{{ route('admin.users.categories.index', 1) }}">
@@ -101,7 +106,8 @@
     </div>
 </nav>
 <script>
-    document.querySelector('a[href="{{ route('category') }}"]').addEventListener('click', function(e) {
+    document.querySelector('a[href="{{ route('category') }}"').addEventListener('click', function(e) {
         e.stopPropagation(); // prevent Bootstrap from treating it as collapse trigger
     });
 </script>
+

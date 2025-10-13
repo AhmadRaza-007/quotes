@@ -235,6 +235,7 @@ class UserController extends Controller
 
     public function login(Request $request)
     {
+        // return 0;
         try {
             $request->validate([
                 'email' => 'required|email',
@@ -244,7 +245,7 @@ class UserController extends Controller
             $credentials = [
                 'email' => $request->email,
                 'password' => $request->password,
-                'user_type' => 2
+                // 'user_type' => 2
             ];
 
             if (Auth::attempt($credentials)) {

@@ -20,9 +20,6 @@ use App\Http\Controllers\API\PostLikeController;
 use App\Http\Controllers\API\PostCommentController;
 use App\Http\Controllers\API\FollowController;
 
-// API Key management
-use App\Http\Controllers\API\ApiKeyController;
-
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -35,24 +32,7 @@ use App\Http\Controllers\API\ApiKeyController;
 |--------------------------------------------------------------------------
 */
 
-Route::group(['middleware' => ['api', 'api.key']], function () {
-    // All API endpoints now require API key authentication
-
-    // Authentication routes (now require API key)
-    Route::post('/login', [UserController::class, 'login']);
-    Route::post('/signup', [UserController::class, 'register']);
-    Route::post('/forget-password', [UserController::class, 'forgotPassword']);
-    Route::post('/reset-password', [UserController::class, 'resetPassword']);
-    Route::post('/change-password', [UserController::class, 'changePassword']);
-
-    // Social authentication (now require API key)
-    Route::post('/auth/google', [SocialAuthController::class, 'handleGoogleAuth']);
-    Route::post('/auth/facebook', [SocialAuthController::class, 'handleFacebookAuth']);
-
-    // Public routes (now require API key)
-    Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
-    Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
-
+Route::group(['middleware' => 'api'], function () {
     // Public profile access
     Route::get('/users/{userId}', [UserController::class, 'showPublicProfile']);
     Route::get('/public-profiles', [UserController::class, 'publicProfiles']);
@@ -61,44 +41,42 @@ Route::group(['middleware' => ['api', 'api.key']], function () {
     // New endpoint for profiles sorted by followers
     Route::get('/profiles/by-followers', [UserController::class, 'profilesByFollowers']);
 
+    // Authentication routes
+    Route::post('/login', [UserController::class, 'login']);
+    Route::post('/signup', [UserController::class, 'register']);
+    Route::post('/forget-password', [UserController::class, 'forgotPassword']);
+    Route::post('/reset-password', [UserController::class, 'resetPassword']);
+    Route::post('/change-password', [UserController::class, 'changePassword']);
+
+    // Social authentication
+    Route::post('/auth/google', [SocialAuthController::class, 'handleGoogleAuth']);
+    Route::post('/auth/facebook', [SocialAuthController::class, 'handleFacebookAuth']);
+
+    // Public routes (no authentication required)
+    Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
+    Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
+
     Route::get('/categories', [CategoryController::class, 'categories']);
     Route::get('/categories/{id}/wallpapers', [CategoryController::class, 'categoriesWithWallpapers']);
 
-    // Follow system
-    Route::post('/users/{userId}/follow', [FollowController::class, 'follow']);
-    // Use POST for unfollow (no DELETE)
-    Route::post('/users/{userId}/unfollow', [FollowController::class, 'unfollow']);
-    Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
-    Route::get('/users/{userId}/following', [FollowController::class, 'following']);
-
-    // Legacy endpoints (DEPRECATED): likes/favourites/comments directly on wallpapers
-    // Keep temporarily for backward compatibility; new apps should use ProfilePost endpoints above
-    Route::post('/like', [LegacyLikeController::class, 'like']);
-    Route::get('/get-like/{wallpaperId}', [LegacyLikeController::class, 'getLikedByUser']);
-
-    Route::post('/favourite', [LegacyFavouriteController::class, 'favourite']);
-    Route::get('/get-favourites', [LegacyFavouriteController::class, 'getFavourite']);
-    Route::get('/get-favourite/{wallpaperId}', [LegacyFavouriteController::class, 'getFavouriteByUser']);
-
-    Route::post('/comment', [LegacyCommentController::class, 'comment']);
-    Route::get('/get-comment/{wallpaperId}', [LegacyCommentController::class, 'getComment']);
-
-    // Protected routes (user authentication required - for API key management)
+    // Protected routes (authentication required)
     Route::group(['middleware' => 'auth:sanctum'], function () {
         // User account
         Route::post('/logout', [UserController::class, 'logout']);
         Route::post('/delete-user', [UserController::class, 'deleteUser']);
         Route::get('/profile', [UserController::class, 'profile']);
 
-        // API Key management routes
-        Route::prefix('api-keys')->group(function () {
-            Route::get('/', [ApiKeyController::class, 'index']);
-            Route::post('/', [ApiKeyController::class, 'store']);
-            Route::get('/{id}', [ApiKeyController::class, 'show']);
-            Route::put('/{id}', [ApiKeyController::class, 'update']);
-            Route::delete('/{id}', [ApiKeyController::class, 'destroy']);
-            Route::post('/{id}/regenerate', [ApiKeyController::class, 'regenerate']);
-        });
+        // // Public routes (no authentication required)
+        // Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
+        // Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
+
+        // Follow system
+        Route::post('/users/{userId}/follow', [FollowController::class, 'follow']);
+        // Use POST for unfollow (no DELETE)
+        Route::post('/users/{userId}/unfollow', [FollowController::class, 'unfollow']);
+        Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
+        Route::get('/users/{userId}/following', [FollowController::class, 'following']);
+
 
         // Admin-only wallpaper management
         // IMPORTANT: Protect these with an 'admin' middleware or policy in your app
@@ -110,5 +88,17 @@ Route::group(['middleware' => ['api', 'api.key']], function () {
 
         // Authenticated users can upload wallpapers for their profile (creates a ProfilePost)
         Route::post('/wallpapers/upload', [WallpaperController::class, 'userUpload']);
+
+        // Legacy endpoints (DEPRECATED): likes/favourites/comments directly on wallpapers
+        // Keep temporarily for backward compatibility; new apps should use ProfilePost endpoints above
+        Route::post('/like', [LegacyLikeController::class, 'like']);
+        Route::get('/get-like/{wallpaperId}', [LegacyLikeController::class, 'getLikedByUser']);
+
+        Route::post('/favourite', [LegacyFavouriteController::class, 'favourite']);
+        Route::get('/get-favourites', [LegacyFavouriteController::class, 'getFavourite']);
+        Route::get('/get-favourite/{wallpaperId}', [LegacyFavouriteController::class, 'getFavouriteByUser']);
+
+        Route::post('/comment', [LegacyCommentController::class, 'comment']);
+        Route::get('/get-comment/{wallpaperId}', [LegacyCommentController::class, 'getComment']);
     });
 });
