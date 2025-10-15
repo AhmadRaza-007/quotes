@@ -115,8 +115,8 @@ class WallpaperController extends Controller
         // 2) auto-generate thumbnail if video
         if ($mediaType === 'video' && !$thumbnailPath) {
             // $ffmpegBin = trim(shell_exec('which ffmpeg'));
-            $ffmpegBin = '/opt/homebrew/bin/ffmpeg';
-            //  $ffmpegBin = '/usr/bin/ffmpeg';
+            // $ffmpegBin = '/opt/homebrew/bin/ffmpeg';
+             $ffmpegBin = '/usr/bin/ffmpeg';
 
             if (!$ffmpegBin) {
                 Log::error('FFmpeg not found on server!');
@@ -318,8 +318,8 @@ class WallpaperController extends Controller
 
         // 2) auto-generate thumbnail if video & none provided
         if ($mediaType === 'video' && !$request->hasFile('thumbnail') && !$thumbnailPath) {
-            $ffmpegBin = '/opt/homebrew/bin/ffmpeg'; // match store()
-            //  $ffmpegBin = '/usr/bin/ffmpeg';
+            // $ffmpegBin = '/opt/homebrew/bin/ffmpeg'; // match store()
+             $ffmpegBin = '/usr/bin/ffmpeg';
             $autoName  = 'thumb_' . time() . '_' . Str::random(6) . '.jpg';
             $localDir  = public_path('uploads/wallpapers/thumbnails');
 

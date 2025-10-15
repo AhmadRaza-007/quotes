@@ -1,9 +1,0 @@
-Implementations added:
-- ProfilePostController: listByUser, show, store, update, destroy, followingFeed
-- PostLikeController: index, like, unlike
-- PostCommentController: index, store, update, destroy
-- FollowController: follow, unfollow, followers, following
-- WallpaperController: store, update, destroy (admin only)
-
-Required: add two public methods in UserController: showPublicProfile($userId), stats($userId)
-These are simple and can be implemented to aggregate totals.

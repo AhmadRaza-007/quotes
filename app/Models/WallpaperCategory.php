@@ -134,6 +134,30 @@ class WallpaperCategory extends Model
         return $wallpapers;
     }
 
+    // Get all wallpapers including subcategories with pagination
+    public function getAllWallpapersPaginated($perPage = 20)
+    {
+        // Get all category IDs including subcategories
+        $categoryIds = $this->getAllCategoryIds();
+
+        // Return paginated wallpapers from all categories
+        return Wallpaper::whereIn('category_id', $categoryIds)
+            ->orderBy('created_at', 'desc')
+            ->paginate($perPage);
+    }
+
+    // Get all category IDs including subcategories
+    public function getAllCategoryIds()
+    {
+        $categoryIds = [$this->id];
+
+        foreach ($this->children as $child) {
+            $categoryIds = array_merge($categoryIds, $child->getAllCategoryIds());
+        }
+
+        return $categoryIds;
+    }
+
     // In app/Models/WallpaperCategory.php
 
     public function scopeActive($query)

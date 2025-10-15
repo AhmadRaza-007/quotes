@@ -971,8 +971,8 @@ class UserController extends Controller
         $user = User::findOrFail($request->user_id);
 
         $expiresAt = null;
-        if ($request->has('expires_in_days')) {
-            $expiresAt = now()->addDays($request->expires_in_days);
+        if ($request->filled('expires_in_days')) {
+            $expiresAt = now()->addDays($request->input('expires_in_days'));
         }
 
         $apiKey = $user->createApiKey($request->name, $expiresAt);
