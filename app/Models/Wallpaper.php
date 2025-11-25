@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Staudenmeir\EloquentEagerLimit\HasEagerLimit;
 
 class Wallpaper extends Model
 {
     use HasFactory;
+    use HasEagerLimit;
 
     protected $fillable = [
         'category_id',
@@ -15,12 +17,15 @@ class Wallpaper extends Model
         'file_path',
         'file_url',
         'thumbnail_url',
+        'thumbnail_path',
         'media_type',
         'mime_type',
         'file_size',
-        'owner_user_id',
+        'user_id',
         'is_admin',
     ];
+
+    protected $hidden = ['file_url', 'thumbnail_url'];
 
     public function category()
     {
@@ -44,6 +49,18 @@ class Wallpaper extends Model
 
     public function owner()
     {
-        return $this->belongsTo(User::class, 'owner_user_id');
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+
+    public function scopeFromActiveCategories($query)
+    {
+        return $query->whereHas('category', function ($query) {
+            $query->active();
+        });
     }
 }

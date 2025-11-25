@@ -69,7 +69,7 @@
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="{{ route('admin.api-keys.index') }}">
+                    <a class="nav-link" href="{{ route('admin.api-keys.apps.index') }}">
                         <i class="bi bi-key"></i> API Keys
                     </a>
                 </li>
@@ -84,6 +84,11 @@
                         <i class="bi bi-image"></i> Users
                     </a>
                 </li>
+                {{-- <li class="nav-item">
+                    <a class="nav-link" href="{{ route('admin.notifications.index') }}">
+                        <i class="bi bi-bell"></i> Push Notifications
+                    </a>
+                </li> --}}
             </ul>
             <!-- Divider -->
             <hr class="navbar-divider my-5 opacity-20">
@@ -110,4 +115,3 @@
         e.stopPropagation(); // prevent Bootstrap from treating it as collapse trigger
     });
 </script>
-

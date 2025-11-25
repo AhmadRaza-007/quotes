@@ -10,6 +10,7 @@ use App\Models\WallpaperFavourite;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Socialite\Facades\Socialite;
 
 class UserController extends Controller
@@ -23,12 +24,12 @@ class UserController extends Controller
         // Basic roll-up stats
         $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
         $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
-        $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
-        $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
+        $totalLikes = \DB::table('profile_posts')->where('user_id', $userId)->sum('likes_count');
+        $totalPosts = \DB::table('profile_posts')->where('user_id', $userId)->count();
 
         // Wallpapers pagination
         $perPage = $request->get('per_page', 15);
-        $wallpapers = Wallpaper::where('owner_user_id', $userId)
+        $wallpapers = Wallpaper::where('user_id', $userId)
             ->orderBy('created_at', 'desc')
             ->paginate($perPage, [
                 'id',
@@ -80,43 +81,15 @@ class UserController extends Controller
             // Get paginated users
             $users = User::paginate($perPage, ['*'], 'page', $page);
 
-            // Transform each user to include profile stats and latest wallpapers
-            // $users->getCollection()->transform(function ($user) {
-            //     // Basic stats
-            //     $followersCount = \DB::table('follows')->where('followee_id', $user->id)->count();
-            //     $followingCount = \DB::table('follows')->where('follower_id', $user->id)->count();
-            //     $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $user->id)->sum('likes_count');
-            //     $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $user->id)->count();
-
-            //     // Get latest 6 user-uploaded wallpapers
-            //     $latestWallpapers = Wallpaper::where('owner_user_id', $user->id)
-            //         // ->where('is_admin', 0) // User-uploaded wallpapers only
-            //         ->orderBy('created_at', 'desc')
-            //         ->take(6)
-            //         ->get(['id', 'title', 'file_url', 'thumbnail_url', 'media_type', 'created_at']);
-
-            //     return [
-            //         'id' => $user->id,
-            //         'name' => $user->name,
-            //         'email' => $user->email,
-            //         'followers_count' => $followersCount,
-            //         'following_count' => $followingCount,
-            //         'total_likes' => (int)$totalLikes,
-            //         'total_posts' => (int)$totalPosts,
-            //         'latest_wallpapers' => $latestWallpapers,
-            //         'is_following' => ,
-            //     ];
-            // });
-
             $users->getCollection()->transform(function ($user) {
                 // Basic stats
                 $followersCount = \DB::table('follows')->where('followee_id', $user->id)->count();
                 $followingCount = \DB::table('follows')->where('follower_id', $user->id)->count();
-                $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $user->id)->sum('likes_count');
-                $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $user->id)->count();
+                $totalLikes = \DB::table('profile_posts')->where('user_id', $user->id)->sum('likes_count');
+                $totalPosts = \DB::table('profile_posts')->where('user_id', $user->id)->count();
 
                 // Get latest 6 wallpapers
-                $latestWallpapers = Wallpaper::where('owner_user_id', $user->id)
+                $latestWallpapers = Wallpaper::where('user_id', $user->id)
                     ->orderBy('created_at', 'desc')
                     ->take(6)
                     ->get(['id', 'title', 'file_url', 'thumbnail_url', 'media_type', 'created_at']);
@@ -163,23 +136,13 @@ class UserController extends Controller
         }
     }
 
-    // // Public: lightweight stats endpoint
-    // public function stats($userId)
-    // {
-    //     $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
-    //     $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
-    //     $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
-    //     $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
-
-    //     $user = auth('sanctum')->user();
-
     // Public: lightweight stats endpoint
     public function stats($userId)
     {
         $followersCount = \DB::table('follows')->where('followee_id', $userId)->count();
         $followingCount = \DB::table('follows')->where('follower_id', $userId)->count();
-        $totalLikes = \DB::table('profile_posts')->where('owner_user_id', $userId)->sum('likes_count');
-        $totalPosts = \DB::table('profile_posts')->where('owner_user_id', $userId)->count();
+        $totalLikes = \DB::table('profile_posts')->where('user_id', $userId)->sum('likes_count');
+        $totalPosts = \DB::table('profile_posts')->where('user_id', $userId)->count();
 
         $user = auth('sanctum')->user();
         $isFollowing = false;
@@ -200,25 +163,50 @@ class UserController extends Controller
             'is_following' => $isFollowing,
         ]);
     }
-    // }
 
     public function register(Request $request)
     {
+        // $request->validate([
+        //     'first_name' => 'required|string|max:255',
+        //     'last_name' => 'required|string|max:255',
+        //     'email' => 'required|email|unique:users',
+        //     'password' => 'required|confirmed|min:6',
+        //     'profile_pic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
+        // ]);
         try {
-
-            $request->validate([
-                'name' => 'required',
-                'email' => 'required|email',
+            $validator = \Validator::make($request->all(), [
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|unique:users',
                 'password' => 'required|confirmed|min:6',
+                'profile_pic' => 'nullable|image|mimes:jpeg,png,jpg,gif|max:2048',
             ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            // Handle profile picture upload
+            $avatarPath = null;
+            if ($request->hasFile('profile_pic')) {
+                $avatarPath = $request->file('profile_pic')->store('avatars', 'public');
+            }
+
+            // Create full name from first and last name
+            $fullName = $request->first_name . ' ' . $request->last_name;
 
             $user = User::create([
-                'name' => $request->name,
+                'name' => $fullName,
+                'first_name' => $request->first_name,
+                'last_name' => $request->last_name,
                 'email' => $request->email,
-                'password' => Hash::make($request->password)
+                'password' => Hash::make($request->password),
+                'avatar' => $avatarPath,
             ]);
 
-            // $token = $user->createToken($request->email)->plainTextToekn;
             $token = $user->createToken('signup')->plainTextToken;
             return response()->json([
                 'status' => 'success',
@@ -305,6 +293,7 @@ class UserController extends Controller
                 'reset_code' => 'required',
                 'password' => 'required|min:6',
             ]);
+
 
             $user = User::where('reset_code', $request->reset_code)->first();
 

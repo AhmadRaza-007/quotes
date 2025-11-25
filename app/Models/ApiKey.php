@@ -1,4 +1,5 @@
 <?php
+// app/Models/ApiKey.php
 
 namespace App\Models;
 
@@ -10,8 +11,9 @@ class ApiKey extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'app_id',
         'name',
+        'app_name',
         'key',
         'last_used_at',
         'expires_at',
@@ -29,13 +31,18 @@ class ApiKey extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function category()
+    {
+        return $this->belongsTo(ApiKeyApp::class, 'app_id');
+    }
+
     public function scopeActive($query)
     {
         return $query->where('is_active', true)
-                    ->where(function($query) {
-                        $query->whereNull('expires_at')
-                              ->orWhere('expires_at', '>', now());
-                    });
+            ->where(function ($query) {
+                $query->whereNull('expires_at')
+                    ->orWhere('expires_at', '>', now());
+            });
     }
 
     public function isValid()

@@ -104,6 +104,17 @@
                                                                     class="btn btn-sm btn-info px-1" title="View">
                                                                     <i class="fas fa-eye"></i>
                                                                 </a>
+                                                                <button type="button"
+                                                                    class="btn btn-sm btn-warning px-1 send-notification-btn"
+                                                                    title="Send Push Notification"
+                                                                    data-wallpaper-id="{{ $wallpaper->id }}"
+                                                                    data-category-id="{{ $category->id }}"
+                                                                    data-parent-category-id="{{ $category?->parent_id }}"
+                                                                    data-thumbnail-url="{{ $wallpaper->thumbnail_url }}"
+                                                                    data-media-type="{{ $wallpaper->media_type }}"
+                                                                    data-title="{{ $wallpaper->title ?: 'Untitled' }}">
+                                                                    <i class="fas fa-bell"></i>
+                                                                </button>
                                                                 <form
                                                                     action="{{ route('admin.users.wallpapers.delete', [$user->id, $wallpaper->id]) }}"
                                                                     method="POST" class="d-inline">
@@ -171,6 +182,79 @@
         </div>
     </div>
 
+    <!-- Send Notification Modal -->
+    <div class="modal fade" id="sendNotificationModal" tabindex="-1" aria-labelledby="sendNotificationModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sendNotificationModalLabel">Send Push Notification</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="sendNotificationForm" method="POST">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <!-- Wallpaper Thumbnail -->
+                                <div class="mb-3">
+                                    <label class="form-label">Wallpaper Thumbnail</label>
+                                    <div class="thumbnail-preview">
+                                        <img id="notificationThumbnail" src="" alt="Wallpaper Thumbnail"
+                                             class="img-fluid rounded" style="max-height: 200px; object-fit: cover;">
+                                    </div>
+                                    {{-- <small class="text-muted d-block mt-1">Thumbnail size: <span id="thumbnailSize">0 KB</span></small> --}}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Notification Details -->
+                                <div class="mb-3">
+                                    <label for="notificationTitle" class="form-label">Notification Title *</label>
+                                    <input type="text" class="form-control" id="notificationTitle" name="title"
+                                           placeholder="Enter notification title" required>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label for="notificationMessage" class="form-label">Notification Message *</label>
+                                    <textarea class="form-control" id="notificationMessage" name="message"
+                                              rows="3" placeholder="Enter notification message" required></textarea>
+                                </div>
+
+                                <!-- Hidden Fields -->
+                                <input type="hidden" id="wallpaperId" name="wallpaper_id">
+                                <input type="hidden" id="categoryId" name="category_id">
+                                <input type="hidden" id="parentCategoryId" name="parent_id">
+                                <input type="hidden" id="thumbnailUrl" name="thumbnail_url">
+                                <input type="hidden" id="mediaType" name="media_type">
+
+                                <!-- Display IDs -->
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Wallpaper ID: <span id="displayWallpaperId" class="fw-bold">-</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Category ID: <span id="displayCategoryId" class="fw-bold">-</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Parent ID: <span id="displayParentCategoryId" class="fw-bold">-</span></small>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Media Type: <span id="displayMediaType" class="fw-bold">-</span></small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-bell"></i> Send Notification
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <style>
         /* Custom CSS for 10 columns layout */
         .col-md-1-2 {
@@ -217,4 +301,156 @@
             }
         }
     </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = new bootstrap.Modal(document.getElementById('sendNotificationModal'));
+            const sendNotificationForm = document.getElementById('sendNotificationForm');
+
+            // Handle send notification button clicks
+            document.querySelectorAll('.send-notification-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const wallpaperId = this.getAttribute('data-wallpaper-id');
+                    const categoryId = this.getAttribute('data-category-id');
+                    const parentCategoryId = this.getAttribute('data-parent-category-id');
+                    const mediaType = this.getAttribute('data-media-type');
+                    const thumbnailUrl = this.getAttribute('data-thumbnail-url');
+                    const title = this.getAttribute('data-title');
+                    // alert(parentCategoryId);x
+                    // Set form values
+                    document.getElementById('wallpaperId').value = wallpaperId;
+                    document.getElementById('categoryId').value = categoryId;
+                    document.getElementById('parentCategoryId').value = parentCategoryId;
+                    document.getElementById('thumbnailUrl').value = thumbnailUrl;
+                    document.getElementById('mediaType').value = mediaType;
+                    document.getElementById('displayWallpaperId').textContent = wallpaperId;
+                    document.getElementById('displayCategoryId').textContent = categoryId;
+                    document.getElementById('displayParentCategoryId').textContent = parentCategoryId;
+                    document.getElementById('displayMediaType').textContent = mediaType;
+
+                    // Set default title
+                    document.getElementById('notificationTitle').value = `${title}`;
+                    document.getElementById('notificationMessage').value = ``;
+
+                    // Load and check thumbnail size
+                    loadThumbnail(thumbnailUrl);
+
+                    // Set form action
+                    sendNotificationForm.action = `{{ route('admin.notifications.send-wallpaper-notification') }}`;
+
+                    // Show modal
+                    modal.show();
+                });
+            });
+
+            // Function to load thumbnail and check size
+            function loadThumbnail(url) {
+                const thumbnailImg = document.getElementById('notificationThumbnail');
+                // const thumbnailSizeSpan = document.getElementById('thumbnailSize');
+
+                // Show loading
+                thumbnailImg.src = '';
+                // thumbnailSizeSpan.textContent = 'Loading...';
+
+                // Create image to check size
+                const img = new Image();
+                img.onload = function() {
+                    thumbnailImg.src = url;
+
+                    // Get image size by fetching it
+                    fetch(url)
+                        .then(response => response.blob())
+                        .then(blob => {
+                            const sizeInKB = Math.round(blob.size / 1024);
+                            // thumbnailSizeSpan.textContent = `${sizeInKB} KB`;
+
+                            // Add warning if size is too large
+                            if (sizeInKB > 300) {
+                                // thumbnailSizeSpan.innerHTML = `<span class="text-danger">${sizeInKB} KB - Too large! Should be < 300KB</span>`;
+                            } else {
+                                // thumbnailSizeSpan.innerHTML = `<span class="text-success">${sizeInKB} KB - OK</span>`;
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error checking thumbnail size:', error);
+                            // thumbnailSizeSpan.textContent = 'Error checking size';
+                        });
+                };
+
+                img.onerror = function() {
+                    thumbnailImg.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+                    // thumbnailSizeSpan.textContent = 'Image not available';
+                };
+
+                img.src = url;
+            }
+
+            // Handle form submission
+            sendNotificationForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+
+                const submitButton = this.querySelector('button[type="submit"]');
+                const originalText = submitButton.innerHTML;
+
+                // Show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+                // Submit form via AJAX
+                fetch(this.action, {
+                    method: 'POST',
+                    body: new FormData(this),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message
+                        showAlert('success', `Notification sent successfully! Sent to ${data.sent_count} devices.`);
+                        modal.hide();
+                    } else {
+                        // Show error message
+                        showAlert('danger', `Failed to send notification: ${data.message}`);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('danger', 'An error occurred while sending the notification.');
+                })
+                .finally(() => {
+                    // Reset button state
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
+                });
+            });
+
+            // Function to show alerts
+            function showAlert(type, message) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+                alertDiv.innerHTML = `
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+
+                document.querySelector('.container-fluid').insertBefore(alertDiv, document.querySelector('.container-fluid').firstChild);
+
+                // Auto remove after 5 seconds
+                setTimeout(() => {
+                    if (alertDiv.parentNode) {
+                        alertDiv.remove();
+                    }
+                }, 5000);
+            }
+
+            // Reset form when modal is hidden
+            document.getElementById('sendNotificationModal').addEventListener('hidden.bs.modal', function() {
+                sendNotificationForm.reset();
+                document.getElementById('notificationThumbnail').src = '';
+                // document.getElementById('thumbnailSize').textContent = '0 KB';
+            });
+        });
+    </script>
 @endsection

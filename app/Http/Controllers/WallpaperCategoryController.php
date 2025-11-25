@@ -16,11 +16,11 @@ class WallpaperCategoryController extends Controller
      */
     public function index()
     {
-        // return WallpaperCategory::whereNull('owner_user_id')
+        // return WallpaperCategory::whereNull('user_id')
         //     ->whereNull('parent_id')
         //     ->get();
-        // Show only admin-created categories (where owner_user_id is null)
-        $categories = WallpaperCategory::whereNull('owner_user_id')
+        // Show only admin-created categories (where user_id is null)
+        $categories = WallpaperCategory::whereNull('user_id')
             ->with('children', 'parent')
             ->get();
 
@@ -35,7 +35,7 @@ class WallpaperCategoryController extends Controller
     public function create()
     {
         // Only show admin categories for parent selection
-        $categories = WallpaperCategory::whereNull('owner_user_id')->get();
+        $categories = WallpaperCategory::whereNull('user_id')->get();
 
         return view('admin.categories.create', compact('categories'));
     }
@@ -50,18 +50,18 @@ class WallpaperCategoryController extends Controller
     {
         $request->validate([
             'category_name' => 'required',
-            'parent_id' => 'required|exists:wallpaper_categories,id',
-            'is_active' => 'nullable|boolean',
+            'parent_id' => 'nullable|exists:wallpaper_categories,id',
+            'is_active' => 'nullable',
             'order' => 'nullable|integer',
         ]);
 
-        // Verify parent is an admin category if provided
+        // Verify parent is an admin category if provided and not null
         if ($request->parent_id) {
-            $parent = WallpaperCategory::whereNull('owner_user_id')
+            $parent = WallpaperCategory::whereNull('user_id')
                 ->findOrFail($request->parent_id);
         }
 
-        // Determine the depth based on parent
+        // Determine the depth based on parent (0 for parent categories, parent depth + 1 for subcategories)
         $depth = 0;
         if ($request->parent_id) {
             $parent = WallpaperCategory::find($request->parent_id);
@@ -71,8 +71,8 @@ class WallpaperCategoryController extends Controller
         WallpaperCategory::create([
             'category_name' => $request->category_name,
             'parent_id' => $request->parent_id,
-            'owner_user_id' => null, // Admin category
-            'is_active' => $request->is_active ?? true,
+            'user_id' => null, // Admin category
+            'is_active' => $request->has('is_active') ? true : false,
             'depth' => $depth,
             'order' => $request->order ?? 0,
         ]);
@@ -100,15 +100,10 @@ class WallpaperCategoryController extends Controller
      */
     public function edit($id)
     {
-        $category = WallpaperCategory::whereNull('owner_user_id')
+        $category = WallpaperCategory::whereNull('user_id')
             ->findOrFail($id);
 
-        // Only show admin categories for parent selection
-        $categories = WallpaperCategory::whereNull('owner_user_id')
-            ->where('id', '!=', $id)
-            ->get();
-
-        return view('admin.categories.edit', compact('category', 'categories'));
+        return response()->json($category);
     }
 
     /**
@@ -118,28 +113,27 @@ class WallpaperCategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(Request $request)
     {
-        $category = WallpaperCategory::whereNull('owner_user_id')
-            ->findOrFail($id);
+        $category = WallpaperCategory::findOrFail($request->category_id);
 
         $request->validate([
             'category_name' => 'required',
-            'parent_id' => 'required|exists:wallpaper_categories,id',
-            'is_active' => 'nullable|boolean',
+            'parent_id' => 'nullable|exists:wallpaper_categories,id',
+            'is_active' => 'nullable',
             'order' => 'nullable|integer',
         ]);
 
-        // Verify parent is an admin category if provided
+        // Verify parent is an admin category if provided and not null
         if ($request->parent_id) {
-            $parent = WallpaperCategory::whereNull('owner_user_id')
+            $parent = WallpaperCategory::whereNull('user_id')
                 ->findOrFail($request->parent_id);
         }
 
         $category->update([
             'category_name' => $request->category_name,
             'parent_id' => $request->parent_id,
-            'is_active' => $request->is_active ?? true,
+            'is_active' => $request->has('is_active') ? true : false,
             'order' => $request->order ?? 0,
         ]);
 
@@ -155,12 +149,12 @@ class WallpaperCategoryController extends Controller
      */
     public function destroy($id)
     {
-        $category = WallpaperCategory::whereNull('owner_user_id')
+        $category = WallpaperCategory::whereNull('user_id')
             ->findOrFail($id);
 
         // Check if category has user subcategories
         $userSubcategoriesCount = WallpaperCategory::where('parent_id', $id)
-            ->whereNotNull('owner_user_id')
+            ->whereNotNull('user_id')
             ->count();
 
         if ($userSubcategoriesCount > 0) {

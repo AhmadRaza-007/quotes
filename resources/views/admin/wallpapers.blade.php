@@ -288,8 +288,8 @@
                                         </div>
                                         <!-- Add this after the category selection div in the create modal -->
                                         <div class="mb-3">
-                                            <label for="owner_user_id" class="form-label">Assign to User (Optional)</label>
-                                            <select class="form-select" name="owner_user_id" id="owner_user_id">
+                                            <label for="user_id" class="form-label">Assign to User (Optional)</label>
+                                            <select class="form-select" name="user_id" id="user_id">
                                                 <option value="">Select User (Leave empty for admin)</option>
                                                 @foreach (getUsers() as $user)
                                                     <option value="{{ $user->id }}">{{ $user->name }}
@@ -362,7 +362,7 @@
                                         <!-- Add this after the category selection div in the update modal -->
                                         <div class="mb-3">
                                             <label class="form-label">Assign to User (Optional)</label>
-                                            <select class="form-select" name="owner_user_id" id="wp_owner_user_id">
+                                            <select class="form-select" name="user_id" id="wp_owner_user_id">
                                                 <option value="">Select User (Leave empty for admin)</option>
                                                 @foreach (getUsers() as $user)
                                                     <option value="{{ $user->id }}">{{ $user->name }}
@@ -422,12 +422,12 @@
                         </thead>
                         <tbody>
                             @foreach ($wallpapers as $key => $wp)
-                                <code>{{ $wp }}</code>
+                                {{-- <code>{{ $wp }}</code> --}}
                                 <tr>
                                     <td>{{ $key + 1 }}</td>
                                     <td><a href="{{ $wp->file_url }}" target="_blank">{{ $wp->title }}</a></td>
                                     <td>
-                                        @if ($wp->owner_user_id)
+                                        @if ($wp->user_id)
                                             {{ $wp->owner->name ?? 'Unknown User' }}
                                         @else
                                             <span class="badge bg-primary">Admin</span>
@@ -478,7 +478,7 @@
                     $('#category_edit').text(data.category?.category_name ?? '');
                     $('#category_id_edit').val(data.category_id);
                     $('#wp_media_type').val(data.media_type ?? '');
-                    $('#wp_owner_user_id').val(data.owner_user_id ?? ''); // Add this line
+                    $('#wp_owner_user_id').val(data.user_id ?? ''); // Add this line
                     if (data.thumbnail) {
                         $('#thumb_preview').attr(
                             'src',

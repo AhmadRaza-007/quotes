@@ -11,7 +11,7 @@ class ProfilePost extends Model
     use HasFactory, SoftDeletes;
 
     protected $fillable = [
-        'owner_user_id',
+        'user_id',
         'wallpaper_id',
         'caption',
         'likes_count',
@@ -27,7 +27,7 @@ class ProfilePost extends Model
 
     public function owner()
     {
-        return $this->belongsTo(User::class, 'owner_user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function wallpaper()

@@ -41,6 +41,7 @@
                                     <thead>
                                         <tr>
                                             <th>Name</th>
+                                            <th>App Name</th>
                                             <th>Created</th>
                                             <th>Last Used</th>
                                             <th>Expires</th>
@@ -55,6 +56,9 @@
                                                     <strong>{{ $apiKey->name }}</strong>
                                                     <br>
                                                     <small class="text-muted">ID: {{ $apiKey->id }}</small>
+                                                </td>
+                                                <td>
+                                                    <strong>{{ $apiKey->app_name }}</strong>
                                                 </td>
                                                 <td>
                                                     <strong>{{ $apiKey->key }}</strong>

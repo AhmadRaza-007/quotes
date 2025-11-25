@@ -14,14 +14,14 @@ if (!function_exists('getUsers')) {
 if (!function_exists('getUserCategories')) {
     function getUserCategories($userId)
     {
-        return WallpaperCategory::where('owner_user_id', $userId)->get();
+        return WallpaperCategory::where('user_id', $userId)->get();
     }
 }
 
 if (!function_exists('getAdminCategories')) {
     function getAdminCategories()
     {
-        return WallpaperCategory::whereNull('owner_user_id')->get();
+        return WallpaperCategory::whereNull('user_id')->get();
     }
 }
 
@@ -30,12 +30,12 @@ if (!function_exists('getCategories')) {
     {
         if ($userId) {
             // return getUserCategories($userId);
-            return WallpaperCategory::where('owner_user_id', $userId)
+            return WallpaperCategory::where('user_id', $userId)
                 ->whereNotNull('parent_id')
                 ->get();
         }
         // return getAdminCategories();
-        return WallpaperCategory::whereNull('owner_user_id')
+        return WallpaperCategory::whereNull('user_id')
             ->whereNotNull('parent_id')
             ->get();
     }
@@ -46,12 +46,12 @@ if (!function_exists('getParentCategories')) {
     {
         if ($userId) {
             // return getUserCategories($userId);
-            return WallpaperCategory::where('owner_user_id', $userId)
+            return WallpaperCategory::where('user_id', $userId)
                 ->whereNull('parent_id')
                 ->get();
         }
         // return getAdminCategories();
-        return WallpaperCategory::whereNull('owner_user_id')
+        return WallpaperCategory::whereNull('user_id')
             ->whereNull('parent_id')
             ->get();
     }

@@ -12,7 +12,7 @@ class CategoryController extends Controller
     public function categories(Request $request)
     {
         try {
-            // Get admin categories (where owner_user_id is null)
+            // Get admin categories (where user_id is null)
             $categories = WallpaperCategory::active()
                 ->adminCategories()
                 ->with('children')
@@ -33,26 +33,110 @@ class CategoryController extends Controller
     }
 
 
-    public function categoriesWithWallpapers($id = null, Request $request)
+    // public function categoriesWithWallpapers(Request $request)
+    // {
+    //     try {
+
+    //         // Define the two main categories (Wallpapers and Live Wallpapers)
+    //         $mainCategoryIds = [11, 12]; // IDs for Wallpapers and Live Wallpapers
+
+    //         // Get pagination parameters
+    //         $perPage = $request->get('count', 20);
+    //         $page = $request->get('page', 1);
+
+    //         if (isset($id)) {
+    //             // Check if the provided ID is one of the main categories
+    //             if (!in_array($id, $mainCategoryIds)) {
+    //                 return response()->json([
+    //                     'status' => 'error',
+    //                     'error' => 'Invalid category ID. Only main categories are allowed.',
+    //                 ], 400);
+    //             }
+
+    //             $category = WallpaperCategory::find($id);
+
+    //             if (!$category) {
+    //                 return response()->json([
+    //                     'status' => 'error',
+    //                     'error' => 'Category not found',
+    //                 ], 404);
+    //             }
+
+    //             // Get paginated wallpapers including subcategories
+    //             $paginatedWallpapers = $category->getAllWallpapersPaginated($perPage);
+
+    //             return response()->json([
+    //                 'status' => 'success',
+    //                 'data' => [
+    //                     'category' => [
+    //                         'id' => $category->id,
+    //                         'category_name' => $category->category_name,
+    //                         'order' => $category->order,
+    //                         'is_active' => $category->is_active,
+    //                     ],
+    //                     'wallpapers' => $paginatedWallpapers->items(),
+    //                     'pagination' => [
+    //                         'current_page' => $paginatedWallpapers->currentPage(),
+    //                         'last_page' => $paginatedWallpapers->lastPage(),
+    //                         'per_page' => $paginatedWallpapers->perPage(),
+    //                         'total' => $paginatedWallpapers->total(),
+    //                         'from' => $paginatedWallpapers->firstItem(),
+    //                         'to' => $paginatedWallpapers->lastItem(),
+    //                     ]
+    //                 ],
+    //             ], 200);
+    //         } else {
+    //             // Get only the two main categories with their direct wallpapers (no children)
+    //             $categories = WallpaperCategory::with(['wallpapers'])
+    //                 ->whereIn('id', $mainCategoryIds)
+    //                 ->active()
+    //                 ->root()
+    //                 ->orderBy('order')
+    //                 ->get();
+
+    //             return response()->json([
+    //                 'status' => 'success',
+    //                 'data' => $categories,
+    //             ], 200);
+    //         }
+    //     } catch (\Exception $exception) {
+    //         return response()->json([
+    //             'status' => 'error',
+    //             'error' => $exception->getMessage(),
+    //         ], 500);
+    //     }
+    // }
+
+    public function categoriesWithWallpapers(Request $request)
     {
         try {
-            // Define the two main categories (Wallpapers and Live Wallpapers)
-            $mainCategoryIds = [11, 12]; // IDs for Wallpapers and Live Wallpapers
+            $request->validate([
+                'category_id' => 'sometimes|nullable|exists:wallpaper_categories,id',
+            ]);
 
-            // Get pagination parameters
+            // Main categories = root categories
+            $mainCategories = WallpaperCategory::whereNull('parent_id')
+                ->active()
+                ->orderBy('order')
+                ->get();
+
+            $mainCategoryIds = $mainCategories->pluck('id')->toArray();
+
+            // Pagination
             $perPage = $request->get('count', 20);
-            $page = $request->get('page', 1);
 
-            if (isset($id)) {
-                // Check if the provided ID is one of the main categories
-                if (!in_array($id, $mainCategoryIds)) {
+            // If ID is provided → Show wallpapers inside that main category
+            if ($request->has('category_id')) {
+                $categoryId = $request->get('category_id');
+                // Check if the given ID is actually a root category
+                if (!in_array($categoryId, $mainCategoryIds)) {
                     return response()->json([
                         'status' => 'error',
-                        'error' => 'Invalid category ID. Only main categories are allowed.',
+                        'error' => 'Invalid category ID. Only parent categories are allowed.',
                     ], 400);
                 }
 
-                $category = WallpaperCategory::find($id);
+                $category = WallpaperCategory::find($categoryId);
 
                 if (!$category) {
                     return response()->json([
@@ -61,7 +145,7 @@ class CategoryController extends Controller
                     ], 404);
                 }
 
-                // Get paginated wallpapers including subcategories
+                // Fetch wallpapers from this category + all deeper children
                 $paginatedWallpapers = $category->getAllWallpapersPaginated($perPage);
 
                 return response()->json([
@@ -84,20 +168,101 @@ class CategoryController extends Controller
                         ]
                     ],
                 ], 200);
-            } else {
-                // Get only the two main categories with their direct wallpapers (no children)
-                $categories = WallpaperCategory::with(['wallpapers'])
-                    ->whereIn('id', $mainCategoryIds)
-                    ->active()
-                    ->root()
-                    ->orderBy('order')
-                    ->get();
+            }
+
+            // No ID → return all main/root categories with their direct wallpapers
+            $categories = WallpaperCategory::with('wallpapers')
+                ->whereNull('parent_id')
+                ->active()
+                ->orderBy('order')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $categories,
+            ], 200);
+        } catch (\Exception $exception) {
+            return response()->json([
+                'status' => 'error',
+                'error' => $exception->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function subCategoriesWithWallpapers(Request $request)
+    {
+        try {
+            $request->validate([
+                'category_id' => 'sometimes|nullable|exists:wallpaper_categories,id',
+            ]);
+
+            // Main categories = root categories
+            $mainCategories = WallpaperCategory::whereNotNull('parent_id')
+                ->active()
+                ->orderBy('order')
+                ->get();
+
+            $subCategoryIds = $mainCategories->pluck('id')->toArray();
+
+            // Pagination
+            $perPage = $request->get('count', 20);
+
+            // If ID is provided → Show wallpapers inside that main category
+            if ($request->has('category_id')) {
+                $categoryId = $request->get('category_id');
+                // Check if the given ID is actually a root category
+                if (!in_array($categoryId, $subCategoryIds)) {
+                    return response()->json([
+                        'status' => 'error',
+                        'error' => 'Invalid category ID. Only Child categories are allowed.',
+                    ], 400);
+                }
+
+                $category = WallpaperCategory::find($categoryId);
+
+                if (!$category) {
+                    return response()->json([
+                        'status' => 'error',
+                        'error' => 'Category not found',
+                    ], 404);
+                }
+
+                // Fetch wallpapers from this category + all deeper children
+                $paginatedWallpapers = $category->getAllWallpapersPaginated($perPage);
 
                 return response()->json([
                     'status' => 'success',
-                    'data' => $categories,
+                    'data' => [
+                        'category' => [
+                            'id' => $category->id,
+                            'category_name' => $category->category_name,
+                            'order' => $category->order,
+                            'is_active' => $category->is_active,
+                        ],
+                        'wallpapers' => $paginatedWallpapers->items(),
+                        'pagination' => [
+                            'current_page' => $paginatedWallpapers->currentPage(),
+                            'last_page' => $paginatedWallpapers->lastPage(),
+                            'per_page' => $paginatedWallpapers->perPage(),
+                            'total' => $paginatedWallpapers->total(),
+                            'from' => $paginatedWallpapers->firstItem(),
+                            'to' => $paginatedWallpapers->lastItem(),
+                        ]
+                    ],
                 ], 200);
             }
+
+            // No ID → return all main/root categories with their direct wallpapers
+            $categories = WallpaperCategory::with('wallpapers')
+                ->whereNull('parent_id')
+                ->active()
+                ->orderBy('order')
+                ->get();
+
+            return response()->json([
+                'status' => 'success',
+                'data' => $categories,
+            ], 200);
         } catch (\Exception $exception) {
             return response()->json([
                 'status' => 'error',

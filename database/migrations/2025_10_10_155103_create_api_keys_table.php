@@ -15,7 +15,7 @@ class CreateApiKeysTable extends Migration
     {
         Schema::create('api_keys', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignId('app_id');
             $table->string('name');
             $table->string('key', 64)->unique();
             $table->timestamp('last_used_at')->nullable();

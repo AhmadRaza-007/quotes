@@ -38,9 +38,9 @@
                                     <div class="modal-body">
                                         <div class="mb-3">
                                             <label class="form-label">Parent Category</label>
-                                            <select class="form-select" name="parent_id" id="parent_id" required>
+                                            <select class="form-select" name="parent_id" id="parent_id">
                                                 <option id="parent_id" value="">Select Parent Category</option>
-                                                @foreach (getCategories() as $item)
+                                                @foreach (getParentCategories() as $item)
                                                     <option value="{{ $item->id }}">{{ $item->category_name }}</option>
                                                 @endforeach
                                             </select>
@@ -49,6 +49,13 @@
                                             <label for="category" class="form-label">Category Name</label>
                                             <input type="text" name="category_name" class="form-control" id="category"
                                                 placeholder="Enter Name" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" name="is_active"
+                                                    id="is_active" checked>
+                                                <label class="form-check-label" for="is_active">Active</label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
@@ -75,11 +82,26 @@
                                     @csrf
                                     <div class="modal-body">
                                         <div class="mb-3">
+                                            <label class="form-label">Parent Category</label>
+                                            <select class="form-select" name="parent_id" id="parent_id">
+                                                <option id="parent_id" value="">Select Parent Category</option>
+                                                @foreach (getParentCategories() as $item)
+                                                    <option value="{{ $item->id }}">{{ $item->category_name }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
                                             <label for="category_edit" class="form-label">Category Name</label>
                                             <input type="text" name="category_name" class="form-control"
                                                 id="category_edit" placeholder="Enter Name" required>
                                             <input name="category_id" type="hidden" id="category_id">
-
+                                        </div>
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" name="is_active"
+                                                    id="is_active_edit">
+                                                <label class="form-check-label" for="is_active_edit">Active</label>
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="modal-footer">
@@ -97,6 +119,7 @@
                             <tr>
                                 <th>Category Name</th>
                                 <th>Parent Category</th>
+                                <th>Status</th>
                                 <th>User</th>
                                 <th>Actions</th>
                             </tr>
@@ -107,11 +130,18 @@
                                 <tr class="row1" data-id="">
                                     <td>{{ $category->category_name }}</td>
                                     <td>{{ $category->parent?->category_name ?? '-' }}</td>
+                                    <td>
+                                        @if ($category->is_active)
+                                            <span class="badge bg-success">Active</span>
+                                        @else
+                                            <span class="badge bg-danger">Inactive</span>
+                                        @endif
+                                    </td>
                                     <td>{{ $category->user?->name ?? '-' }}</td>
                                     <td>
-                                        <a class="btn btn-sm" onclick="editCategory({{ $category->id }})">
+                                        <button class="btn btn-sm" onclick="editCategory({{ $category->id }})">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <a href="{{ url('admin/category/delete/' . $category->id) }}"
                                             class="btn delete btn-sm">
                                             <i class="fas fa-trash-alt"></i>
@@ -131,13 +161,14 @@
 @section('script')
     <script>
         function editCategory(id) {
-            console.log(id);
+            console.log("{{ url('admin/category/edit/') }}" + "/" + id);
             $.ajax({
                 url: "{{ url('admin/category/edit/') }}" + "/" + id,
                 success: function(data) {
                     console.log(data);
                     $("#category_edit").val(data.category_name);
                     $("#category_id").val(data.id);
+                    $("#is_active_edit").prop('checked', data.is_active);
                     $("#updateModalLabel").modal("show");
                 }
             });

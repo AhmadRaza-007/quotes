@@ -20,8 +20,11 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'first_name',
+        'last_name',
         'email',
         'password',
+        'avatar',
     ];
 
     /**
@@ -45,13 +48,13 @@ class User extends Authenticatable
 
     public function wallpapers()
     {
-        return $this->hasMany(Wallpaper::class, 'owner_user_id');
+        return $this->hasMany(Wallpaper::class, 'user_id');
     }
 
     // app/Models/User.php
     public function categories()
     {
-        return $this->hasMany(WallpaperCategory::class, 'owner_user_id');
+        return $this->hasMany(WallpaperCategory::class, 'user_id');
     }
 
     // API Keys relationship
@@ -60,10 +63,12 @@ class User extends Authenticatable
         return $this->hasMany(ApiKey::class);
     }
 
-    /**
-     * Generate a new API key for the user
-     */
-    public function createApiKey($name, $expiresAt = null)
+    public function apiKeyCategories()
+    {
+        return $this->hasMany(ApiKeyApp::class);
+    }
+
+    public function createApiKey($name, $expiresAt = null, $categoryId = null)
     {
         $key = Str::random(64);
 
@@ -71,6 +76,13 @@ class User extends Authenticatable
             'name' => $name,
             'key' => $key,
             'expires_at' => $expiresAt,
+            'category_id' => $categoryId,
         ]);
+    }
+
+    // User devices relationship for push notifications
+    public function devices()
+    {
+        return $this->hasMany(UserDevice::class);
     }
 }

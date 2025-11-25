@@ -1,87 +1,8 @@
 <?php
 
-// namespace App\Models;
-
-// use Illuminate\Database\Eloquent\Factories\HasFactory;
-// use Illuminate\Database\Eloquent\Model;
-
-// class WallpaperCategory extends Model
-// {
-//     use HasFactory;
-
-//     protected $fillable = [
-//         'category_name',
-//         'parent_id',
-//         'user_id',
-//         'depth',
-//         'order',
-//         'is_active',
-//     ];
-
-//     public function wallpapers()
-//     {
-//         return $this->hasMany(Wallpaper::class, 'category_id');
-//     }
-
-//     public function parent()
-//     {
-//         return $this->belongsTo(WallpaperCategory::class, 'parent_id');
-//     }
-
-//     public function children()
-//     {
-//         return $this->hasMany(WallpaperCategory::class, 'parent_id');
-//     }
-
-//     public function user()
-//     {
-//         return $this->belongsTo(User::class, 'user_id');
-//     }
-
-//     public function allChildren()
-//     {
-//         return $this->children()->with('allChildren');
-//     }
-
-//     // Scope for active categories
-//     public function scopeActive($query)
-//     {
-//         return $query->where('is_active', true);
-//     }
-
-//     // Scope for root categories (no parent)
-//     public function scopeRoot($query)
-//     {
-//         return $query->whereNull('parent_id');
-//     }
-
-//     // Get all descendants (useful for getting wallpapers from all subcategories)
-//     public function getDescendants()
-//     {
-//         $descendants = collect();
-
-//         foreach ($this->children as $child) {
-//             $descendants->push($child);
-//             $descendants = $descendants->merge($child->getDescendants());
-//         }
-
-//         return $descendants;
-//     }
-
-//     // Get all wallpapers including those from subcategories
-//     public function getAllWallpapers()
-//     {
-//         $categoryIds = $this->getDescendants()->pluck('id')->prepend($this->id);
-//         return Wallpaper::whereIn('category_id', $categoryIds)->get();
-//     }
-// }
-
-
-// app/Models/WallpaperCategory.php
-
-
 namespace App\Models;
 
+use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -94,14 +15,15 @@ class WallpaperCategory extends Model
         'parent_id',
         'order',
         'depth',
-        'owner_user_id',
-        'is_admin'
+        'user_id',
+        'is_admin',
+        'is_active',
     ];
 
     // Relationship with user who owns this category
     public function owner()
     {
-        return $this->belongsTo(User::class, 'owner_user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     // Relationship with wallpapers in this category
@@ -142,13 +64,20 @@ class WallpaperCategory extends Model
 
         // Return paginated wallpapers from all categories
         return Wallpaper::whereIn('category_id', $categoryIds)
-            ->orderBy('created_at', 'desc')
+            ->with(['category' => function ($query) {
+                $query->with('parent');
+            }])
+            ->inRandomOrder()
             ->paginate($perPage);
     }
 
     // Get all category IDs including subcategories
     public function getAllCategoryIds()
     {
+        if ($this->is_active != 1) {
+            return [];
+        }
+
         $categoryIds = [$this->id];
 
         foreach ($this->children as $child) {
@@ -162,7 +91,7 @@ class WallpaperCategory extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('is_active', 1);
+        return $query->where('is_active', true);
     }
 
     public function scopeRoot($query)
@@ -172,14 +101,14 @@ class WallpaperCategory extends Model
 
     public function scopeAdminCategories($query)
     {
-        return $query->whereNull('owner_user_id');
+        return $query->whereNull('user_id');
     }
 
     public function scopeUserCategories($query, $userId = null)
     {
         if ($userId) {
-            return $query->where('owner_user_id', $userId);
+            return $query->where('user_id', $userId);
         }
-        return $query->whereNotNull('owner_user_id');
+        return $query->whereNotNull('user_id');
     }
 }

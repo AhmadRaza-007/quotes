@@ -32,7 +32,7 @@ class WallpaperService
             'file_size'         => $fileSize,
             'file_url'          => $fileUrl,
             'thumbnail_url'     => $thumbnailUrl,
-            'owner_user_id'     => $ownerUserId,
+            'user_id'     => $ownerUserId,
             'is_admin'          => 1,
         ]);
     }

@@ -21,7 +21,7 @@
                             <div
                                 class="alert {{ $category->parent->category_name == 'Wallpapers' ? 'alert-info' : 'alert-warning' }}">
                                 <strong>Category Type:</strong> {{ $category->parent->category_name }}<br>
-                                @if ($category->parent->category_name == 'Wallpapers')
+                                @if ($category->parent->category_name != 'Live Wallpapers')
                                     <strong>Allowed:</strong> Static images only (JPG, PNG, WEBP)<br>
                                     <strong>Not Allowed:</strong> Videos, GIFs, or any animated content
                                 @else
@@ -37,10 +37,10 @@
                                     accept="{{ $category->parent->category_name == 'Wallpapers' ? 'image/jpeg,image/png,image/webp' : 'video/*,.gif' }}"
                                     multiple required> --}}
                                 <input type="file" name="files[]" class="form-control"
-                                    accept="{{ $category->parent->category_name == 'Wallpapers' ? 'image/jpeg,image/png,image/webp' : 'video/*,.gif' }}"
+                                    accept="{{ $category->parent->category_name != 'Live Wallpapers' ? 'image/jpeg,image/png,image/webp' : 'video/*,.gif' }}"
                                     multiple required>
                                 <small class="text-muted">
-                                    @if ($category->parent->category_name == 'Wallpapers')
+                                    @if ($category->parent->category_name != 'Live Wallpapers')
                                         <strong>Accepted formats:</strong> JPG, PNG, WEBP<br>
                                         <strong>Max files:</strong> 20 at once | <strong>Max size per file:</strong> 100MB
                                     @else
@@ -66,6 +66,20 @@
                                         (optional)</small>
                                 </div>
                             @endif
+
+                            <!-- Hidden off-screen video and canvas for thumbnail capture -->
+                            <div style="visibility:hidden; position:absolute; width:1px; height:1px; overflow:hidden;">
+                                <video id="video-player" muted></video>
+                                <canvas id="video-canvas"></canvas>
+                            </div>
+
+                            <!-- Hidden field to store generated thumbnail -->
+                            <input type="hidden" name="video_thumbnail[]" id="video-thumbnail-input">
+
+                            <!-- Optional preview for admin -->
+                            <img id="thumbnail-preview" src="" alt="Thumbnail Preview"
+                                style="max-width:200px; display:none;">
+
 
                             <!-- Progress Bar -->
                             <div class="mb-3" id="progressContainer" style="display: none;">
@@ -132,5 +146,81 @@
                 uploadBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Uploading...`;
             });
         });
+
+
+        // For live wallpaper/video uploads only
+        const categoryType = "{{ $category->parent->category_name }}";
+
+        if (categoryType === 'Live Wallpapers') {
+            const fileInput = document.querySelector('input[name="files[]"]');
+            const videoPlayer = document.getElementById('video-player');
+            const canvas = document.getElementById('video-canvas');
+            const thumbnailPreview = document.getElementById('thumbnail-preview');
+            const uploadForm = document.getElementById('uploadForm');
+
+            // Container to hold hidden inputs for all video thumbnails
+            const existingThumbInputs = document.querySelectorAll('[name^="video_thumbnails["]');
+            existingThumbInputs.forEach(el => el.remove()); // clear old ones
+
+            fileInput.addEventListener('change', async function() {
+                const files = Array.from(this.files).filter(f => f.type.startsWith('video/'));
+                if (files.length === 0) return;
+
+                thumbnailPreview.style.display = 'none';
+                let previews = [];
+
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const imageDataURL = await captureThumbnail(file, videoPlayer, canvas);
+
+                    // create hidden input per file
+                    const input = document.createElement('input');
+                    input.type = 'hidden';
+                    input.name = `video_thumbnails[${i}]`;
+                    input.value = imageDataURL;
+                    uploadForm.appendChild(input);
+
+                    previews.push(
+                        `<img src="${imageDataURL}" style="max-width:150px; margin:4px; border:1px solid #ccc;">`
+                        );
+                }
+
+                thumbnailPreview.style.display = 'block';
+                thumbnailPreview.outerHTML = `<div id="thumbnail-preview">${previews.join('')}</div>`;
+            });
+
+            // helper: returns Promise that resolves with Base64 JPEG
+            function captureThumbnail(file, videoPlayer, canvas) {
+                return new Promise(resolve => {
+                    const fileURL = URL.createObjectURL(file);
+                    videoPlayer.src = fileURL;
+
+                    videoPlayer.addEventListener('loadedmetadata', function() {
+                        const captureTime = Math.min(2, videoPlayer.duration / 2);
+                        videoPlayer.currentTime = captureTime;
+                    }, {
+                        once: true
+                    });
+
+                    videoPlayer.addEventListener('seeked', function() {
+                        setTimeout(() => {
+                            videoPlayer.pause();
+
+                            canvas.width = videoPlayer.videoWidth;
+                            canvas.height = videoPlayer.videoHeight;
+
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(videoPlayer, 0, 0, canvas.width, canvas.height);
+
+                            const imageDataURL = canvas.toDataURL('image/jpeg', 0.9);
+                            URL.revokeObjectURL(videoPlayer.src);
+                            resolve(imageDataURL);
+                        }, 300);
+                    }, {
+                        once: true
+                    });
+                });
+            }
+        }
     </script>
 @endsection

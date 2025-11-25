@@ -9,11 +9,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('wallpapers', function (Blueprint $table) {
-            if (!Schema::hasColumn('wallpapers', 'owner_user_id')) {
-                $table->foreignId('owner_user_id')->nullable()->constrained('users')->nullOnDelete()->after('file_path');
+            if (!Schema::hasColumn('wallpapers', 'user_id')) {
+                $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete()->after('file_path');
             }
             if (!Schema::hasColumn('wallpapers', 'is_admin')) {
-                $table->boolean('is_admin')->default(false)->after('owner_user_id');
+                $table->boolean('is_admin')->default(false)->after('user_id');
             }
         });
     }
@@ -24,8 +24,8 @@ return new class extends Migration
             if (Schema::hasColumn('wallpapers', 'is_admin')) {
                 $table->dropColumn('is_admin');
             }
-            if (Schema::hasColumn('wallpapers', 'owner_user_id')) {
-                $table->dropConstrainedForeignId('owner_user_id');
+            if (Schema::hasColumn('wallpapers', 'user_id')) {
+                $table->dropConstrainedForeignId('user_id');
             }
         });
     }

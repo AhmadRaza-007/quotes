@@ -13,6 +13,7 @@ class FollowController extends Controller
     // POST /api/users/{userId}/follow
     public function follow($userId, Request $request)
     {
+
         $user = $request->user();
         if (! $user) {
             return response()->json(['message' => 'Unauthenticated'], 401);

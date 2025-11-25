@@ -34,12 +34,30 @@
                                                     </a>
                                                 </h5>
                                                 <div class="mb-2">
+                                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                                        <span
+                                                            class="badge {{ $category->is_active ? 'bg-success' : 'bg-danger' }}">
+                                                            {{ $category->is_active ? 'Active' : 'Inactive' }}
+                                                        </span>
+                                                        <form
+                                                            action="{{ route('admin.users.categories.toggle', [$user->id, $category->id]) }}"
+                                                            method="POST" class="d-inline">
+                                                            @csrf
+                                                            @method('PATCH')
+                                                            <div class="form-check form-switch">
+                                                                <input class="form-check-input" type="checkbox"
+                                                                    name="is_active"
+                                                                    {{ $category->is_active ? 'checked' : '' }}
+                                                                    onchange="this.form.submit()">
+                                                            </div>
+                                                        </form>
+                                                    </div>
                                                     <span
                                                         class="badge {{ $category->parent->category_name == 'Wallpapers' ? 'bg-success' : 'bg-warning' }}">
                                                         {{ $category->parent->category_name }}
                                                     </span>
                                                     <small class="text-muted">
-                                                        @if ($category->parent->category_name == 'Wallpapers')
+                                                        @if ($category->parent->category_name != 'Live Wallpapers')
                                                             (Images only)
                                                         @else
                                                             (Videos/GIFs only)

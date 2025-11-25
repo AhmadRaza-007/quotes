@@ -7,6 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use App\Models\ApiKey;
 use Illuminate\Support\Carbon;
+use Kreait\Firebase\Factory;
 
 class ApiKeyController extends Controller
 {

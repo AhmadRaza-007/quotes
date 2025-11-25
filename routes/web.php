@@ -1,10 +1,12 @@
 <?php
 
-
+use App\Http\Controllers\ApiKeyAppController;
 use App\Http\Controllers\QuoteCategoryController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WallpaperCategoryController;
 use App\Http\Controllers\WallpaperController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Services\FirebaseTestService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
@@ -78,9 +80,50 @@ Route::group(['middleware' => 'auth'], function () {
     Route::group(['middleware' => 'auth'], function () {
         Route::prefix('admin')->group(function () {
 
+            Route::get('/test-firebase', function () {
+                try {
+                    $firebaseTest = new FirebaseTestService();
+                    $result = $firebaseTest->testConnection();
+
+                    return response()->json($result);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error: ' . $e->getMessage()
+                    ], 500);
+                }
+            });
+
+            Route::get('/test-notification', function () {
+                try {
+                    $notificationService = new \App\Services\NotificationService();
+
+                    // Test with empty device tokens array to test Firebase connection
+                    $result = $notificationService->sendToMultipleDevices(
+                        [], // Empty array to test connection without sending
+                        'Test Notification',
+                        'This is a test notification from Firebase'
+                    );
+
+                    return response()->json([
+                        'success' => true,
+                        'message' => 'Firebase connection successful',
+                        'data' => $result
+                    ]);
+                } catch (\Exception $e) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Error: ' . $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ], 500);
+                }
+            });
+
             Route::get('/dashboard', function () {
                 return view('admin.main');
             })->name('admin.dashboard');
+
+            Route::get('/test', [UserController::class, 'test'])->name('test');
 
             // Category routes (admin-only categories)
             // Route::get('category', [WallpaperCategoryController::class, 'index'])->name('category');
@@ -113,12 +156,28 @@ Route::group(['middleware' => 'auth'], function () {
             Route::put('/users/{id}', [UserController::class, 'update'])->name('admin.users.update');
             Route::delete('/users/{id}', [UserController::class, 'destroy'])->name('admin.users.destroy');
 
+            // In routes/web.php - Add these routes
+
+            // API Key Category management routes
+            Route::get('/api-keys/apps', [ApiKeyAppController::class, 'index'])->name('admin.api-keys.apps.index');
+            Route::get('/api-keys/apps/create', [ApiKeyAppController::class, 'create'])->name('admin.api-keys.apps.create');
+            Route::post('/api-keys/apps', [ApiKeyAppController::class, 'store'])->name('admin.api-keys.apps.store');
+            Route::get('/api-keys/apps/{id}/edit', [ApiKeyAppController::class, 'edit'])->name('admin.api-keys.apps.edit');
+            Route::put('/api-keys/apps/{id}', [ApiKeyAppController::class, 'update'])->name('admin.api-keys.apps.update');
+            Route::delete('/api-keys/apps/{id}', [ApiKeyAppController::class, 'destroy'])->name('admin.api-keys.apps.destroy');
+
+
             // API Key management routes
-            Route::get('/api-keys', [UserController::class, 'apiKeys'])->name('admin.api-keys.index');
+            Route::get('/api-keys/{id}', [UserController::class, 'apiKeys'])->name('admin.api-keys');
             Route::post('/api-keys/generate', [UserController::class, 'generateApiKey'])->name('admin.api-keys.generate');
             Route::delete('/api-keys/{id}', [UserController::class, 'deleteApiKey'])->name('admin.api-keys.delete');
-            Route::get('/api-keys/user/{userId}', [UserController::class, 'userApiKeys'])->name('admin.api-keys.user');
-            Route::get('/api-keys/user/{id}', [UserController::class, 'getUserApiKeys']);
+            Route::get('/api-keys/app/{userId}', [UserController::class, 'userApiKeys'])->name('admin.api-keys.user');
+            // Route::get('/api-keys/user/{id}', [UserController::class, 'getUserApiKeys']);
+
+            // API Keys management routes
+            Route::get('/api-keys/manage', [UserController::class, 'manageApiKeys'])->name('admin.api-keys.manage');
+            Route::post('/api-keys/{id}/regenerate', [UserController::class, 'regenerateApiKey'])->name('admin.api-keys.regenerate');
+
 
 
             // Route::post('/users/{id}/categories', [UserController::class, 'storeCategory'])->name('admin.users.categories.store');
@@ -126,7 +185,9 @@ Route::group(['middleware' => 'auth'], function () {
             // NEW: User category and wallpaper management routes
             // Route::post('/users/{id}/categories', [UserController::class, 'storeCategory'])->name('admin.users.categories.store');
             Route::get('/users/{id}/categories', [UserController::class, 'userCategories'])->name('admin.users.categories.index');
-            Route::post('/users/{id}/categories', [UserController::class, 'storeCategory'])->name('admin.users.categories.store');
+            Route::patch('/admin/users/{userId}/categories/{categoryId}/toggle', [UserController::class, 'toggleCategory'])
+                ->name('admin.users.categories.toggle');
+            Route::post('/users/{id}/categories/store', [UserController::class, 'storeCategory'])->name('admin.users.categories.store');
             Route::get('/users/{id}/categories/create', [UserController::class, 'createCategory'])->name('admin.users.categories.create');
             Route::get('/users/{userId}/categories/{categoryId}/wallpapers', [UserController::class, 'categoryWallpapers'])->name('admin.users.categories.wallpapers');
             Route::get('/users/{userId}/categories/{categoryId}/wallpapers/create', [UserController::class, 'createCategoryWallpaper'])->name('admin.users.categories.wallpapers.create');
@@ -143,6 +204,14 @@ Route::group(['middleware' => 'auth'], function () {
             Route::get('/profile', [UserController::class, 'profile'])->name('admin.profile');
             Route::post('/profile', [UserController::class, 'updateProfile'])->name('admin.profile.update');
             Route::post('/change-password', [UserController::class, 'changePassword'])->name('admin.change.password');
+
+            // Push Notification Management Routes
+            Route::get('/notifications', [NotificationController::class, 'index'])->name('admin.notifications.index');
+            Route::post('/notifications/send-to-all', [NotificationController::class, 'sendToAll'])->name('admin.notifications.send-to-all');
+            Route::post('/notifications/send-to-user', [NotificationController::class, 'sendToUser'])->name('admin.notifications.send-to-user');
+            Route::post('/notifications/send-wallpaper-notification', [NotificationController::class, 'sendWallpaperNotification'])->name('admin.notifications.send-wallpaper-notification');
+            Route::get('/notifications/users', [NotificationController::class, 'getUsers'])->name('admin.notifications.users');
+            Route::get('/notifications/stats', [NotificationController::class, 'getStats'])->name('admin.notifications.stats');
         });
     });
 });

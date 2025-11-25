@@ -22,6 +22,7 @@ use App\Http\Controllers\API\FollowController;
 
 // API Key management
 use App\Http\Controllers\API\ApiKeyController;
+use App\Http\Controllers\API\NotificationController;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,7 +52,11 @@ Route::group(['middleware' => ['api', 'api.key']], function () {
 
     // Public routes (now require API key)
     Route::get('/wallpapers', [WallpaperController::class, 'index']); // Home feed: admin wallpapers only
-    Route::get('/wallpapers/{id}', [WallpaperController::class, 'show']);
+    Route::get('/wallpapers/search', [WallpaperController::class, 'search']); // Search by id or title
+    Route::get('/wallpapers/details', [WallpaperController::class, 'show']);
+    Route::get('/user/{id}/wallpapers', [WallpaperController::class, 'getWallpapersByUser']);
+    Route::get('/user/{id}/categories', [WallpaperController::class, 'getCategoriessByUser']);
+    Route::get('/usercategories_by_userid', [WallpaperController::class, 'getCategoriessByUserId']);
 
     // Public profile access
     Route::get('/users/{userId}', [UserController::class, 'showPublicProfile']);
@@ -62,25 +67,18 @@ Route::group(['middleware' => ['api', 'api.key']], function () {
     Route::get('/profiles/by-followers', [UserController::class, 'profilesByFollowers']);
 
     Route::get('/categories', [CategoryController::class, 'categories']);
-    Route::get('/categories/{id}/wallpapers', [CategoryController::class, 'categoriesWithWallpapers']);
+    Route::get('/wallpapersbycat', [CategoryController::class, 'categoriesWithWallpapers']);
+    Route::get('/wallpapersbysubcat', [CategoryController::class, 'subCategoriesWithWallpapers']);
 
-    // Follow system
-    Route::post('/users/{userId}/follow', [FollowController::class, 'follow']);
-    // Use POST for unfollow (no DELETE)
-    Route::post('/users/{userId}/unfollow', [FollowController::class, 'unfollow']);
+
     Route::get('/users/{userId}/followers', [FollowController::class, 'followers']);
     Route::get('/users/{userId}/following', [FollowController::class, 'following']);
 
     // Legacy endpoints (DEPRECATED): likes/favourites/comments directly on wallpapers
     // Keep temporarily for backward compatibility; new apps should use ProfilePost endpoints above
-    Route::post('/like', [LegacyLikeController::class, 'like']);
+
     Route::get('/get-like/{wallpaperId}', [LegacyLikeController::class, 'getLikedByUser']);
 
-    Route::post('/favourite', [LegacyFavouriteController::class, 'favourite']);
-    Route::get('/get-favourites', [LegacyFavouriteController::class, 'getFavourite']);
-    Route::get('/get-favourite/{wallpaperId}', [LegacyFavouriteController::class, 'getFavouriteByUser']);
-
-    Route::post('/comment', [LegacyCommentController::class, 'comment']);
     Route::get('/get-comment/{wallpaperId}', [LegacyCommentController::class, 'getComment']);
 
     // Protected routes (user authentication required - for API key management)
@@ -99,16 +97,38 @@ Route::group(['middleware' => ['api', 'api.key']], function () {
             Route::delete('/{id}', [ApiKeyController::class, 'destroy']);
             Route::post('/{id}/regenerate', [ApiKeyController::class, 'regenerate']);
         });
+    });
 
-        // Admin-only wallpaper management
-        // IMPORTANT: Protect these with an 'admin' middleware or policy in your app
-        Route::post('/wallpapers', [WallpaperController::class, 'store']);   // Admin upload
-        // Admin edit (use POST instead of PATCH)
-        Route::post('/wallpapers/{id}/update', [WallpaperController::class, 'update']); // Admin edit
-        // Admin delete (use POST instead of DELETE)
-        Route::post('/wallpapers/{id}/delete', [WallpaperController::class, 'destroy']); // Admin delete
+    // Admin-only wallpaper management
+    // IMPORTANT: Protect these with an 'admin' middleware or policy in your app
+    Route::post('/wallpapers', [WallpaperController::class, 'store']);   // Admin upload
+    // Admin edit (use POST instead of PATCH)
+    Route::post('/wallpapers/{id}/update', [WallpaperController::class, 'update']); // Admin edit
+    // Admin delete (use POST instead of DELETE)
+    Route::post('/wallpapers/{id}/delete', [WallpaperController::class, 'destroy']); // Admin delete
 
-        // Authenticated users can upload wallpapers for their profile (creates a ProfilePost)
-        Route::post('/wallpapers/upload', [WallpaperController::class, 'userUpload']);
+    Route::post('/like', [LegacyLikeController::class, 'like']);
+
+    Route::post('/comment', [LegacyCommentController::class, 'comment']);
+
+    Route::post('/favourite', [LegacyFavouriteController::class, 'favourite']);
+    Route::get('/get-favourites', [LegacyFavouriteController::class, 'getFavourite']);
+    Route::get('/get-favourite/{wallpaperId}', [LegacyFavouriteController::class, 'getFavouriteByUser']);
+
+    // Follow system
+    Route::post('/users/{userId}/follow', [FollowController::class, 'follow']);
+    // Use POST for unfollow (no DELETE)
+    Route::post('/users/{userId}/unfollow', [FollowController::class, 'unfollow']);
+
+    // Authenticated users can upload wallpapers for their profile (creates a ProfilePost)
+    Route::post('/wallpapers/upload', [WallpaperController::class, 'userUpload']);
+
+    // Push notification routes
+    Route::prefix('notifications')->group(function () {
+        Route::post('/register-device', [NotificationController::class, 'registerDevice']);
+        Route::post('/unregister-device', [NotificationController::class, 'unregisterDevice']);
+        Route::post('/test', [NotificationController::class, 'sendTestNotification']);
+        Route::get('/devices', [NotificationController::class, 'getUserDevices']);
+
     });
 });
